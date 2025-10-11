@@ -1,1 +1,4 @@
 project_id = "edhbxfmtxbimrfgizhst"
+
+[functions.process-price-list]
+verify_jwt = true
