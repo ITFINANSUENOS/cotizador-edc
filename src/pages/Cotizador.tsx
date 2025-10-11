@@ -8,29 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, Calculator, CreditCard, FileText, HandshakeIcon, Settings } from "lucide-react";
-
-// Mock data - En producción esto vendrá de Google Sheets
-const mockBrands = ["Samsung", "LG", "Whirlpool", "Haceb"];
-const mockLines: Record<string, string[]> = {
-  "Samsung": ["Refrigeración", "Lavado", "Cocción", "Audio y Video"],
-  "LG": ["Refrigeración", "Lavado", "Cocción", "Audio y Video"],
-  "Whirlpool": ["Refrigeración", "Lavado", "Cocción"],
-  "Haceb": ["Cocción", "Calefacción"]
-};
-const mockProducts: Record<string, Record<string, any[]>> = {
-  "Samsung": {
-    "Refrigeración": [
-      { ref: "RF28R7201SR", price: 3500000, creditPrice: 3800000, convenioPrice: 3400000 },
-      { ref: "RT38K5930SL", price: 2200000, creditPrice: 2400000, convenioPrice: 2100000 }
-    ]
-  },
-  "LG": {
-    "Refrigeración": [
-      { ref: "GS65SPP1", price: 4200000, creditPrice: 4500000, convenioPrice: 4000000 }
-    ]
-  }
-};
+import { LogOut, CreditCard, FileText, HandshakeIcon, Settings } from "lucide-react";
+import ProductSelector from "@/components/cotizador/ProductSelector";
 
 const Cotizador = () => {
   const navigate = useNavigate();
@@ -38,10 +17,9 @@ const Cotizador = () => {
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   
-  // Selectores de producto
-  const [selectedBrand, setSelectedBrand] = useState("");
-  const [selectedLine, setSelectedLine] = useState("");
+  // Producto seleccionado y precios
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [productPrices, setProductPrices] = useState<any>(null);
   
   // Tipo de venta
   const [saleType, setSaleType] = useState<"contado" | "credito" | "convenio">("contado");
@@ -94,12 +72,22 @@ const Cotizador = () => {
     toast.success("Sesión cerrada exitosamente");
   };
 
+  const handleProductSelect = (product: any, prices: any) => {
+    setSelectedProduct(product);
+    setProductPrices(prices);
+    setQuote(null);
+    setShowClientForm(false);
+  };
+
   const calculateQuote = () => {
-    if (!selectedProduct) {
-      toast.error("Por favor selecciona un producto");
+    if (!selectedProduct || !productPrices || productPrices.length === 0) {
+      toast.error("Por favor selecciona un producto con precios disponibles");
       return;
     }
 
+    // Usar el primer precio disponible (el más reciente por la ordenación)
+    const priceData = productPrices[0];
+    
     let basePrice = 0;
     let totalPrice = 0;
     let monthlyPayment = 0;
@@ -107,7 +95,7 @@ const Cotizador = () => {
 
     switch (saleType) {
       case "contado":
-        basePrice = selectedProduct.price;
+        basePrice = Number(priceData.base_price);
         // Descuento según cuotas (1-6 cuotas)
         const discount = installments === 1 ? 0.03 : installments <= 3 ? 0.02 : 0.01;
         totalPrice = basePrice * (1 - discount);
@@ -116,14 +104,14 @@ const Cotizador = () => {
         break;
       
       case "credito":
-        basePrice = selectedProduct.creditPrice;
+        basePrice = Number(priceData.credit_price || priceData.base_price);
         totalPrice = basePrice;
         remainingBalance = totalPrice - initialPayment;
         monthlyPayment = remainingBalance / installments;
         break;
       
       case "convenio":
-        basePrice = selectedProduct.convenioPrice;
+        basePrice = Number(priceData.convenio_price || priceData.base_price);
         totalPrice = basePrice;
         remainingBalance = totalPrice - initialPayment;
         monthlyPayment = remainingBalance / installments;
@@ -137,7 +125,9 @@ const Cotizador = () => {
       remainingBalance,
       installments,
       monthlyPayment,
-      saleType
+      saleType,
+      priceListId: priceData.price_list_id,
+      productId: selectedProduct.id
     });
 
     setShowClientForm(true);
@@ -149,21 +139,68 @@ const Cotizador = () => {
       return;
     }
 
-    // Aquí se guardaría en la base de datos
-    toast.success("Cotización guardada exitosamente");
-    
-    // Reset form
-    setShowClientForm(false);
-    setClientName("");
-    setClientId("");
-    setClientPhone("");
-    setQuote(null);
-  };
+    if (!quote || !user) {
+      toast.error("Error en los datos de la cotización");
+      return;
+    }
 
-  const availableLines = selectedBrand ? mockLines[selectedBrand] || [] : [];
-  const availableProducts = selectedBrand && selectedLine 
-    ? mockProducts[selectedBrand]?.[selectedLine] || []
-    : [];
+    try {
+      setLoading(true);
+      
+      // Obtener el advisor_id del usuario actual
+      const { data: advisorData, error: advisorError } = await supabase
+        .from("advisors")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (advisorError || !advisorData) {
+        toast.error("No se encontró el perfil de asesor");
+        return;
+      }
+
+      // Guardar la cotización en la base de datos
+      const { error: quoteError } = await supabase
+        .from("quotes")
+        .insert({
+          advisor_id: advisorData.id,
+          product_id: quote.productId,
+          price_list_id: quote.priceListId,
+          sale_type: quote.saleType,
+          base_price: quote.basePrice,
+          total_price: quote.totalPrice,
+          initial_payment: quote.initialPayment,
+          remaining_balance: quote.remainingBalance,
+          installments: quote.installments,
+          monthly_payment: quote.monthlyPayment,
+          client_name: clientName,
+          client_id_number: clientId,
+          client_phone: clientPhone
+        });
+
+      if (quoteError) {
+        console.error("Error saving quote:", quoteError);
+        toast.error("Error al guardar la cotización");
+        return;
+      }
+
+      toast.success("Cotización guardada exitosamente");
+      
+      // Reset form
+      setShowClientForm(false);
+      setClientName("");
+      setClientId("");
+      setClientPhone("");
+      setQuote(null);
+      setSelectedProduct(null);
+      setProductPrices(null);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al procesar la cotización");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
@@ -193,79 +230,7 @@ const Cotizador = () => {
         </Card>
 
         {/* Selector de Productos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Calculator className="w-5 h-5 mr-2 text-primary" />
-              Seleccionar Producto
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label>Marca</Label>
-                <Select value={selectedBrand} onValueChange={(value) => {
-                  setSelectedBrand(value);
-                  setSelectedLine("");
-                  setSelectedProduct(null);
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona marca" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockBrands.map((brand) => (
-                      <SelectItem key={brand} value={brand}>{brand}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Línea</Label>
-                <Select 
-                  value={selectedLine} 
-                  onValueChange={(value) => {
-                    setSelectedLine(value);
-                    setSelectedProduct(null);
-                  }}
-                  disabled={!selectedBrand}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona línea" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableLines.map((line) => (
-                      <SelectItem key={line} value={line}>{line}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Referencia</Label>
-                <Select 
-                  value={selectedProduct?.ref || ""} 
-                  onValueChange={(value) => {
-                    const product = availableProducts.find(p => p.ref === value);
-                    setSelectedProduct(product);
-                  }}
-                  disabled={!selectedLine}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona producto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableProducts.map((product) => (
-                      <SelectItem key={product.ref} value={product.ref}>
-                        {product.ref}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ProductSelector onProductSelect={handleProductSelect} />
 
         {/* Tipo de Venta */}
         {selectedProduct && (
@@ -438,8 +403,8 @@ const Cotizador = () => {
                   placeholder="Ej: 3001234567"
                 />
               </div>
-              <Button onClick={handleSubmitQuote} className="w-full">
-                Guardar Cotización
+              <Button onClick={handleSubmitQuote} className="w-full" disabled={loading}>
+                {loading ? "Guardando..." : "Guardar Cotización"}
               </Button>
             </CardContent>
           </Card>

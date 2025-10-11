@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator } from "lucide-react";
+import { toast } from "sonner";
 
 interface Product {
   id: string;
@@ -122,25 +123,36 @@ const ProductSelector = ({ onProductSelect }: ProductSelectorProps) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
+    console.log("Loading prices for product:", productId);
+
     // Load all active price lists that contain this product
     const { data, error } = await supabase
       .from("price_list_products")
       .select(`
         *,
-        price_list:price_lists (
+        price_list:price_lists!inner (
           id,
           name,
-          start_date
+          start_date,
+          is_active
         )
       `)
       .eq("product_id", productId)
       .eq("price_list.is_active", true)
       .order("price_list.start_date", { ascending: false });
 
+    console.log("Price list query result:", { data, error });
+
     if (error) {
       console.error("Error loading prices:", error);
+      toast.error("Error al cargar los precios del producto");
+      onProductSelect(product, null);
+    } else if (!data || data.length === 0) {
+      console.warn("No active prices found for product");
+      toast.error("No hay precios activos para este producto");
       onProductSelect(product, null);
     } else {
+      console.log("Prices loaded successfully:", data);
       onProductSelect(product, data as any);
     }
   };
