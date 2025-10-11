@@ -143,7 +143,7 @@ const ProductSelector = ({ onProductSelect }: ProductSelectorProps) => {
       `)
       .eq("product_id", productId)
       .eq("price_list.is_active", true)
-      .order("price_list.start_date", { ascending: false });
+      .order("created_at", { ascending: false });
 
     console.log("Price list query result:", { data, error });
 
