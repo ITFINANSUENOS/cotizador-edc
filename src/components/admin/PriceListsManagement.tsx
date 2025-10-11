@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Upload, FileSpreadsheet, Calendar, Trash2 } from "lucide-react";
 import { format, isAfter, isBefore, startOfMonth, endOfMonth, subDays } from "date-fns";
 import { es } from "date-fns/locale";
+import PlantillaDownload from "./PlantillaDownload";
 
 interface PriceList {
   id: string;
@@ -171,15 +172,18 @@ const PriceListsManagement = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Gestión de Listas de Precios</CardTitle>
-            <CardDescription>
-              Carga y administra las listas de precios en formato Excel
-            </CardDescription>
-          </div>
+    <>
+      <PlantillaDownload />
+      
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Gestión de Listas de Precios</CardTitle>
+              <CardDescription>
+                Carga y administra las listas de precios en formato Excel
+              </CardDescription>
+            </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => {
             setDialogOpen(open);
             if (!open) resetForm();
@@ -313,6 +317,7 @@ const PriceListsManagement = () => {
         )}
       </CardContent>
     </Card>
+    </>
   );
 };
 
