@@ -38,7 +38,7 @@ const Cotizador = () => {
       setInstallments(1);
     } else if (newType === "credito") {
       setInstallments(9);
-    } else {
+    } else if (newType === "convenio") {
       setInstallments(1);
     }
   };
@@ -124,33 +124,32 @@ const Cotizador = () => {
         }
         
         totalPrice = basePrice;
-        remainingBalance = totalPrice - initialPayment;
-        monthlyPayment = installments > 0 ? remainingBalance / installments : 0;
+        remainingBalance = basePrice;
+        monthlyPayment = basePrice;
         break;
       
       case "credicontado":
-        // Para credicontado usar el precio de credicontado con cálculo del 5%
+        // Para credicontado: (precio base - cuota inicial) * (1 + cuotas * 5%)
         basePrice = Number(priceData.credicontado_price || priceData.list_1_price);
-        totalPrice = basePrice;
-        remainingBalance = totalPrice - initialPayment;
-        monthlyPayment = installments > 0 ? remainingBalance / installments : 0;
+        remainingBalance = basePrice - initialPayment;
+        totalPrice = remainingBalance * (1 + (installments * 0.05));
+        monthlyPayment = installments > 0 ? totalPrice / installments : 0;
         break;
       
       case "credito":
         // Para crédito usar BASE FINANSUEÑOS (credit_price) con amortización
         basePrice = Number(priceData.credit_price || priceData.list_1_price);
+        remainingBalance = basePrice;
         totalPrice = basePrice;
-        remainingBalance = totalPrice - initialPayment;
-        // Calcular amortización según el plazo
-        monthlyPayment = installments > 0 ? remainingBalance / installments : 0;
+        monthlyPayment = installments > 0 ? basePrice / installments : 0;
         break;
       
       case "convenio":
         // Para convenios usar el precio de CONVENIOS
         basePrice = Number(priceData.convenio_price || priceData.list_1_price);
         totalPrice = basePrice;
-        remainingBalance = totalPrice - initialPayment;
-        monthlyPayment = installments > 0 ? remainingBalance / installments : 0;
+        remainingBalance = basePrice;
+        monthlyPayment = basePrice;
         break;
     }
 
@@ -324,25 +323,6 @@ const Cotizador = () => {
                       </Button>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Número de Cuotas</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={installments}
-                      onChange={(e) => setInstallments(Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cuota Inicial</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={initialPayment}
-                      onChange={(e) => setInitialPayment(Number(e.target.value))}
-                      placeholder="0"
-                    />
-                  </div>
                 </TabsContent>
 
                 <TabsContent value="credicontado" className="space-y-4 mt-4">
@@ -404,16 +384,6 @@ const Cotizador = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Cuota Inicial</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={initialPayment}
-                      onChange={(e) => setInitialPayment(Number(e.target.value))}
-                      placeholder="0"
-                    />
-                  </div>
                 </TabsContent>
 
                 <TabsContent value="convenio" className="space-y-4 mt-4">
@@ -427,25 +397,6 @@ const Cotizador = () => {
                     <p className="text-sm text-muted-foreground mt-2">
                       Precio especial para convenios institucionales
                     </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Número de Cuotas</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={installments}
-                      onChange={(e) => setInstallments(Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cuota Inicial</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={initialPayment}
-                      onChange={(e) => setInitialPayment(Number(e.target.value))}
-                      placeholder="0"
-                    />
                   </div>
                 </TabsContent>
               </Tabs>
