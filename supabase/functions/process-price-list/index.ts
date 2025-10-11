@@ -36,7 +36,7 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    const { file, fileName, listName, startDate } = await req.json()
+    const { file, fileName, listName, startDate, endDate } = await req.json()
 
     if (!file || !listName || !startDate) {
       throw new Error('Missing required fields')
@@ -60,6 +60,7 @@ serve(async (req) => {
       .insert({
         name: listName,
         start_date: startDate,
+        end_date: endDate || null,
         uploaded_by: user.id,
         is_active: true,
       })

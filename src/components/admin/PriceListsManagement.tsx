@@ -16,6 +16,7 @@ interface PriceList {
   id: string;
   name: string;
   start_date: string;
+  end_date: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -29,6 +30,7 @@ const PriceListsManagement = () => {
   // Form fields
   const [listName, setListName] = useState("");
   const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [excelFile, setExcelFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -54,27 +56,10 @@ const PriceListsManagement = () => {
   const resetForm = () => {
     setListName("");
     setStartDate("");
+    setEndDate("");
     setExcelFile(null);
   };
 
-  const validateUploadDate = (selectedDate: Date): boolean => {
-    const now = new Date();
-    const firstDayOfMonth = startOfMonth(selectedDate);
-    const lastDayOfPreviousMonth = subDays(firstDayOfMonth, 1);
-    const allowedStartDate = subDays(firstDayOfMonth, 5); // 25th of previous month
-
-    // Check if today is between the 25th and last day of previous month
-    if (isBefore(now, allowedStartDate) || isAfter(now, lastDayOfPreviousMonth)) {
-      return false;
-    }
-
-    // Check if selected date is the first of a month
-    if (selectedDate.getDate() !== 1) {
-      return false;
-    }
-
-    return true;
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,21 +81,13 @@ const PriceListsManagement = () => {
 
   const handleSubmit = async () => {
     if (!listName || !startDate || !excelFile) {
-      toast.error("Todos los campos son requeridos");
+      toast.error("Por favor completa el nombre, fecha de inicio y selecciona un archivo");
       return;
     }
 
-    const selectedDate = new Date(startDate + "T00:00:00");
-    
-    // Validate date is first of month
-    if (selectedDate.getDate() !== 1) {
-      toast.error("La fecha de inicio debe ser el 1 de cualquier mes");
-      return;
-    }
-
-    // Validate upload window
-    if (!validateUploadDate(selectedDate)) {
-      toast.error("Las cargas solo se pueden realizar del 25 al último día del mes anterior al inicio de vigencia");
+    // Validate end date is after start date if provided
+    if (endDate && new Date(endDate) < new Date(startDate)) {
+      toast.error("La fecha de finalización debe ser posterior a la fecha de inicio");
       return;
     }
 
@@ -130,6 +107,7 @@ const PriceListsManagement = () => {
             fileName: excelFile.name,
             listName: listName,
             startDate: startDate,
+            endDate: endDate || null,
           }
         });
 
@@ -198,7 +176,7 @@ const PriceListsManagement = () => {
               <DialogHeader>
                 <DialogTitle>Nueva Lista de Precios</DialogTitle>
                 <DialogDescription>
-                  Carga un archivo Excel con los precios. Solo puedes cargar listas del 25 al último día del mes anterior.
+                  Carga un archivo Excel con los precios. Puedes hacerlo en cualquier momento del mes.
                 </DialogDescription>
               </DialogHeader>
               
@@ -221,8 +199,18 @@ const PriceListsManagement = () => {
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                   />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="endDate">Fecha de Finalización de Vigencia</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
                   <p className="text-xs text-muted-foreground">
-                    Debe ser el 1 de cualquier mes
+                    Opcional. Si no se especifica, la lista no tendrá fecha de expiración.
                   </p>
                 </div>
 
@@ -265,6 +253,7 @@ const PriceListsManagement = () => {
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Fecha de Inicio</TableHead>
+                  <TableHead>Fecha de Finalización</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Fecha de Carga</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
@@ -273,7 +262,7 @@ const PriceListsManagement = () => {
               <TableBody>
                 {priceLists.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       No hay listas de precios cargadas
                     </TableCell>
                   </TableRow>
@@ -286,6 +275,16 @@ const PriceListsManagement = () => {
                           <Calendar className="w-4 h-4 text-muted-foreground" />
                           {format(new Date(list.start_date), "d 'de' MMMM, yyyy", { locale: es })}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {list.end_date ? (
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            {format(new Date(list.end_date), "d 'de' MMMM, yyyy", { locale: es })}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Sin fecha</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
