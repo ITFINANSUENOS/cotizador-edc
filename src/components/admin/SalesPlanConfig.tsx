@@ -111,25 +111,40 @@ const SalesPlanConfig = () => {
     const avalRate = avalCobrador / 100;
     const term = testTerm;
     
+    // Calcular cuota base usando método francés (cuota fija)
+    // PMT = P × (r × (1+r)^n) / ((1+r)^n - 1)
+    const r = monthlyRate;
+    const n = term;
+    const onePlusR = 1 + r;
+    const onePlusRtoN = Math.pow(onePlusR, n);
+    const baseMonthlyPayment = capital * (r * onePlusRtoN) / (onePlusRtoN - 1);
+    
+    // Aval fijo mensual (porcentaje del capital original)
+    const avalPayment = capital * avalRate;
+    
     const table = [];
     let remainingCapital = capital;
-    const monthlyCapitalPayment = capital / term;
 
     for (let month = 1; month <= term; month++) {
+      // Interés sobre saldo pendiente
       const interest = remainingCapital * monthlyRate;
-      const avalPayment = capital * avalRate;
-      const totalMonthly = monthlyCapitalPayment + interest + avalPayment;
+      
+      // Abono a capital (va aumentando cada mes)
+      const capitalPayment = baseMonthlyPayment - interest;
+      
+      // Total mensual = abono a capital + interés + aval
+      const totalMonthly = capitalPayment + interest + avalPayment;
       
       table.push({
         month,
-        capital: monthlyCapitalPayment,
+        capital: capitalPayment,
         interest,
         aval: avalPayment,
         total: totalMonthly,
-        remainingCapital: remainingCapital - monthlyCapitalPayment,
+        remainingCapital: remainingCapital - capitalPayment,
       });
       
-      remainingCapital -= monthlyCapitalPayment;
+      remainingCapital -= capitalPayment;
     }
     
     setAmortizationTable(table);
