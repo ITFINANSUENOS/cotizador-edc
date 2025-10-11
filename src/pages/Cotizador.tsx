@@ -110,24 +110,25 @@ const Cotizador = () => {
 
   // Función para calcular tabla de amortización
   const calculateAmortization = (basePrice: number, months: number) => {
-    const avalRate = 0.02; // 2%
-    const interestRate = 0.0187; // 1.87% mensual
+    const avalRate = 0.02; // 2% del precio base (fijo en todas las cuotas)
+    const interestRate = 0.0187; // 1.87% mensual sobre saldo
+    
+    const fixedAval = basePrice * avalRate; // Aval fijo para todas las cuotas
+    const principal = basePrice / months; // Abono a capital fijo
     
     let balance = basePrice;
     const schedule = [];
     
     for (let i = 1; i <= months; i++) {
-      const aval = balance * avalRate;
       const interest = balance * interestRate;
-      const principal = (basePrice / months);
-      const payment = principal + interest + aval;
+      const payment = principal + interest + fixedAval;
       
       schedule.push({
         month: i,
         balance: balance,
         principal: principal,
         interest: interest,
-        aval: aval,
+        aval: fixedAval,
         payment: payment
       });
       
@@ -182,7 +183,11 @@ const Cotizador = () => {
         basePrice = Number(priceData.credit_price || priceData.list_1_price);
         remainingBalance = basePrice;
         totalPrice = basePrice;
-        monthlyPayment = installments > 0 ? basePrice / installments : 0;
+        // Calcular la cuota mensual incluyendo aval + interés + abono a capital
+        const avalFijo = basePrice * 0.02;
+        const abonoCapital = basePrice / installments;
+        const interesInicial = basePrice * 0.0187;
+        monthlyPayment = abonoCapital + interesInicial + avalFijo;
         break;
       
       case "convenio":
