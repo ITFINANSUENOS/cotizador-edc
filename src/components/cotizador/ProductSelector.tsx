@@ -18,7 +18,11 @@ interface PriceListProduct {
   id: string;
   price_list_id: string;
   product_id: string;
-  base_price: number;
+  list_1_price: number;
+  list_2_price: number | null;
+  list_3_price: number | null;
+  list_4_price: number | null;
+  credicontado_price: number | null;
   credit_price: number | null;
   convenio_price: number | null;
   price_list: {
@@ -233,6 +237,14 @@ const ProductSelector = ({ onProductSelect }: ProductSelectorProps) => {
             </Select>
           </div>
         </div>
+        
+        {/* Mostrar descripción del producto seleccionado */}
+        {selectedProductId && products.find(p => p.id === selectedProductId)?.description && (
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+            <Label className="text-sm font-medium">Descripción:</Label>
+            <p className="text-sm mt-1">{products.find(p => p.id === selectedProductId)?.description}</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

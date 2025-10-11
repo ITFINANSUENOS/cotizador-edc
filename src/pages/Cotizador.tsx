@@ -26,6 +26,18 @@ const Cotizador = () => {
   const [installments, setInstallments] = useState(1);
   const [initialPayment, setInitialPayment] = useState(0);
   
+  // Resetear cuotas cuando cambia el tipo de venta
+  const handleSaleTypeChange = (newType: "contado" | "credito" | "convenio") => {
+    setSaleType(newType);
+    if (newType === "contado") {
+      setInstallments(1);
+    } else if (newType === "credito") {
+      setInstallments(9);
+    } else {
+      setInstallments(1);
+    }
+  };
+  
   // Resultado
   const [quote, setQuote] = useState<any>(null);
   
@@ -92,26 +104,40 @@ const Cotizador = () => {
     let totalPrice = 0;
     let monthlyPayment = 0;
     let remainingBalance = 0;
+    let selectedListPrice = 0;
 
     switch (saleType) {
       case "contado":
-        basePrice = Number(priceData.base_price);
-        // Descuento según cuotas (1-6 cuotas)
-        const discount = installments === 1 ? 0.03 : installments <= 3 ? 0.02 : 0.01;
-        totalPrice = basePrice * (1 - discount);
-        remainingBalance = totalPrice - initialPayment;
-        monthlyPayment = remainingBalance / installments;
-        break;
-      
-      case "credito":
-        basePrice = Number(priceData.credit_price || priceData.base_price);
+        // Para contado, usar las 4 listas según el número de cuotas
+        // 1 cuota = LISTA 1, 2-3 cuotas = LISTA 2, 4-5 cuotas = LISTA 3, 6 cuotas = LISTA 4
+        if (installments === 1) {
+          selectedListPrice = Number(priceData.list_1_price);
+        } else if (installments <= 3) {
+          selectedListPrice = Number(priceData.list_2_price || priceData.list_1_price);
+        } else if (installments <= 5) {
+          selectedListPrice = Number(priceData.list_3_price || priceData.list_1_price);
+        } else {
+          selectedListPrice = Number(priceData.list_4_price || priceData.list_1_price);
+        }
+        
+        basePrice = selectedListPrice;
         totalPrice = basePrice;
         remainingBalance = totalPrice - initialPayment;
         monthlyPayment = remainingBalance / installments;
         break;
       
+      case "credito":
+        // Para crédito usar BASE FINANSUEÑOS (credit_price) con amortización
+        basePrice = Number(priceData.credit_price || priceData.list_1_price);
+        totalPrice = basePrice;
+        remainingBalance = totalPrice - initialPayment;
+        // Calcular amortización según el plazo
+        monthlyPayment = remainingBalance / installments;
+        break;
+      
       case "convenio":
-        basePrice = Number(priceData.convenio_price || priceData.base_price);
+        // Para convenios usar el precio de CONVENIOS
+        basePrice = Number(priceData.convenio_price || priceData.list_1_price);
         totalPrice = basePrice;
         remainingBalance = totalPrice - initialPayment;
         monthlyPayment = remainingBalance / installments;
@@ -242,7 +268,7 @@ const Cotizador = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs value={saleType} onValueChange={(v) => setSaleType(v as any)}>
+              <Tabs value={saleType} onValueChange={(v) => handleSaleTypeChange(v as any)}>
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="contado">Contado</TabsTrigger>
                   <TabsTrigger value="credito">Crédito</TabsTrigger>

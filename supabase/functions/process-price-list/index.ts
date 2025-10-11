@@ -78,16 +78,20 @@ serve(async (req) => {
     const priceListProductInserts = []
 
     for (const row of data as any[]) {
-      // Expected columns: Marca, Linea, Referencia, Descripcion, Precio_Base, Precio_Credito, Precio_Convenio
+      // Expected columns: Marca, Linea, Referencia, Descripcion, LISTA 1-4, CREDICONTADO, BASE FINANSUEÑOS, CONVENIOS
       const brand = row['Marca'] || row['marca'] || ''
       const line = row['Linea'] || row['linea'] || row['Línea'] || ''
       const reference = row['Referencia'] || row['referencia'] || ''
       const description = row['Descripcion'] || row['descripcion'] || row['Descripción'] || ''
-      const basePrice = parseFloat(row['Precio_Base'] || row['precio_base'] || row['PrecioBase'] || 0)
-      const creditPrice = parseFloat(row['Precio_Credito'] || row['precio_credito'] || row['PrecioCredito'] || 0)
-      const convenioPrice = parseFloat(row['Precio_Convenio'] || row['precio_convenio'] || row['PrecioConvenio'] || 0)
+      const list1Price = parseFloat(row['LISTA 1'] || row['lista_1'] || 0)
+      const list2Price = parseFloat(row['LISTA 2'] || row['lista_2'] || 0)
+      const list3Price = parseFloat(row['LISTA 3'] || row['lista_3'] || 0)
+      const list4Price = parseFloat(row['LISTA 4'] || row['lista_4'] || 0)
+      const credicontadoPrice = parseFloat(row['CREDICONTADO'] || row['credicontado'] || 0)
+      const creditPrice = parseFloat(row['BASE FINANSUEÑOS'] || row['BASE FINANSUENOS'] || row['base_finansuenos'] || 0)
+      const convenioPrice = parseFloat(row['CONVENIOS'] || row['convenios'] || 0)
 
-      if (!brand || !line || !reference || !basePrice) {
+      if (!brand || !line || !reference || !list1Price) {
         console.log(`Skipping row with missing data: ${JSON.stringify(row)}`)
         continue
       }
@@ -131,7 +135,11 @@ serve(async (req) => {
         .insert({
           price_list_id: priceList.id,
           product_id: productId,
-          base_price: basePrice,
+          list_1_price: list1Price,
+          list_2_price: list2Price || null,
+          list_3_price: list3Price || null,
+          list_4_price: list4Price || null,
+          credicontado_price: credicontadoPrice || null,
           credit_price: creditPrice || null,
           convenio_price: convenioPrice || null,
         })

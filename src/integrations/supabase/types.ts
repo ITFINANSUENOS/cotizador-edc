@@ -85,29 +85,41 @@ export type Database = {
       }
       price_list_products: {
         Row: {
-          base_price: number
           convenio_price: number | null
           created_at: string | null
+          credicontado_price: number | null
           credit_price: number | null
           id: string
+          list_1_price: number | null
+          list_2_price: number | null
+          list_3_price: number | null
+          list_4_price: number | null
           price_list_id: string
           product_id: string
         }
         Insert: {
-          base_price: number
           convenio_price?: number | null
           created_at?: string | null
+          credicontado_price?: number | null
           credit_price?: number | null
           id?: string
+          list_1_price?: number | null
+          list_2_price?: number | null
+          list_3_price?: number | null
+          list_4_price?: number | null
           price_list_id: string
           product_id: string
         }
         Update: {
-          base_price?: number
           convenio_price?: number | null
           created_at?: string | null
+          credicontado_price?: number | null
           credit_price?: number | null
           id?: string
+          list_1_price?: number | null
+          list_2_price?: number | null
+          list_3_price?: number | null
+          list_4_price?: number | null
           price_list_id?: string
           product_id?: string
         }
