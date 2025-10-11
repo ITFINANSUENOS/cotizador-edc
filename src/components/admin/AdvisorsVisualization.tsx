@@ -295,11 +295,40 @@ const AdvisorsVisualization = () => {
             </CardDescription>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="default" 
+              onClick={async () => {
+                setImporting(true);
+                try {
+                  const response = await fetch('/data/asesores_comercial.csv');
+                  const csvContent = await response.text();
+                  
+                  const { data, error } = await supabase.functions.invoke('import-advisors-csv', {
+                    body: { csvContent }
+                  });
+
+                  if (error) throw error;
+
+                  toast.success(data.message);
+                  loadAdvisors();
+                } catch (error: any) {
+                  toast.error(error.message || "Error al importar asesores comerciales");
+                  console.error(error);
+                } finally {
+                  setImporting(false);
+                }
+              }}
+              disabled={importing}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              {importing ? "Importando..." : "Cargar Equipo Comercial"}
+            </Button>
+            
             <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
                   <Upload className="w-4 h-4 mr-2" />
-                  Importar CSV
+                  Importar CSV Personalizado
                 </Button>
               </DialogTrigger>
               <DialogContent>
