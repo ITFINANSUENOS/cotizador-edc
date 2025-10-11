@@ -93,10 +93,11 @@ serve(async (req) => {
             .from('advisors')
             .update({
               full_name: nombreAsesor,
+              advisor_code: codigoVendedor || null,
               phone: movilAsesor || null,
               sales_manager: jefeVentas !== 'N/A' ? jefeVentas : null,
               zone_leader: liderZona || null,
-              zonal_coordinator: regionalVenta || null,
+              regional: regionalVenta || null,
             })
             .eq('id', existing.id)
 
@@ -127,10 +128,11 @@ serve(async (req) => {
               user_id: authData.user.id,
               full_name: nombreAsesor,
               email: tempEmail,
+              advisor_code: codigoVendedor || null,
               phone: movilAsesor || null,
               sales_manager: jefeVentas !== 'N/A' ? jefeVentas : null,
               zone_leader: liderZona || null,
-              zonal_coordinator: regionalVenta || null,
+              regional: regionalVenta || null,
               is_active: true,
             })
 

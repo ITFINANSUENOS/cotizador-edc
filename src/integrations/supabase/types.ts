@@ -16,12 +16,14 @@ export type Database = {
     Tables: {
       advisors: {
         Row: {
+          advisor_code: string | null
           created_at: string | null
           email: string
           full_name: string
           id: string
           is_active: boolean | null
           phone: string | null
+          regional: string | null
           sales_manager: string | null
           updated_at: string | null
           user_id: string
@@ -29,12 +31,14 @@ export type Database = {
           zone_leader: string | null
         }
         Insert: {
+          advisor_code?: string | null
           created_at?: string | null
           email: string
           full_name: string
           id?: string
           is_active?: boolean | null
           phone?: string | null
+          regional?: string | null
           sales_manager?: string | null
           updated_at?: string | null
           user_id: string
@@ -42,12 +46,14 @@ export type Database = {
           zone_leader?: string | null
         }
         Update: {
+          advisor_code?: string | null
           created_at?: string | null
           email?: string
           full_name?: string
           id?: string
           is_active?: boolean | null
           phone?: string | null
+          regional?: string | null
           sales_manager?: string | null
           updated_at?: string | null
           user_id?: string

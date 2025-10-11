@@ -17,8 +17,10 @@ interface Advisor {
   full_name: string;
   email: string;
   phone: string | null;
+  advisor_code: string | null;
   sales_manager: string | null;
   zone_leader: string | null;
+  regional: string | null;
   zonal_coordinator: string | null;
   is_active: boolean;
 }
@@ -34,6 +36,7 @@ const AdvisorsVisualization = () => {
   
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterRegional, setFilterRegional] = useState<string>("all");
   const [filterCoordinator, setFilterCoordinator] = useState<string>("all");
   const [filterZoneLeader, setFilterZoneLeader] = useState<string>("all");
   const [filterSalesManager, setFilterSalesManager] = useState<string>("all");
@@ -43,8 +46,10 @@ const AdvisorsVisualization = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [advisorCode, setAdvisorCode] = useState("");
   const [salesManager, setSalesManager] = useState("");
   const [zoneLeader, setZoneLeader] = useState("");
+  const [regional, setRegional] = useState("");
   const [zonalCoordinator, setZonalCoordinator] = useState("");
   const [isActive, setIsActive] = useState(true);
 
@@ -52,6 +57,7 @@ const AdvisorsVisualization = () => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
 
   // Unique values for filters
+  const [regionals, setRegionals] = useState<string[]>([]);
   const [coordinators, setCoordinators] = useState<string[]>([]);
   const [zoneLeaders, setZoneLeaders] = useState<string[]>([]);
   const [salesManagers, setSalesManagers] = useState<string[]>([]);
@@ -62,7 +68,7 @@ const AdvisorsVisualization = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [advisors, searchTerm, filterCoordinator, filterZoneLeader, filterSalesManager, filterStatus]);
+  }, [advisors, searchTerm, filterRegional, filterCoordinator, filterZoneLeader, filterSalesManager, filterStatus]);
 
   const loadAdvisors = async () => {
     setLoading(true);
@@ -78,10 +84,12 @@ const AdvisorsVisualization = () => {
       setAdvisors(data || []);
       
       // Extract unique values for filters
+      const uniqueRegionals = [...new Set(data?.map(a => a.regional).filter(Boolean) as string[])];
       const uniqueCoordinators = [...new Set(data?.map(a => a.zonal_coordinator).filter(Boolean) as string[])];
       const uniqueZoneLeaders = [...new Set(data?.map(a => a.zone_leader).filter(Boolean) as string[])];
       const uniqueSalesManagers = [...new Set(data?.map(a => a.sales_manager).filter(Boolean) as string[])];
       
+      setRegionals(uniqueRegionals.sort());
       setCoordinators(uniqueCoordinators.sort());
       setZoneLeaders(uniqueZoneLeaders.sort());
       setSalesManagers(uniqueSalesManagers.sort());
@@ -98,8 +106,14 @@ const AdvisorsVisualization = () => {
       filtered = filtered.filter(a => 
         a.full_name.toLowerCase().includes(term) ||
         a.email.toLowerCase().includes(term) ||
-        a.phone?.toLowerCase().includes(term)
+        a.phone?.toLowerCase().includes(term) ||
+        a.advisor_code?.toLowerCase().includes(term)
       );
+    }
+
+    // Regional filter
+    if (filterRegional !== "all") {
+      filtered = filtered.filter(a => a.regional === filterRegional);
     }
 
     // Coordinator filter
@@ -129,6 +143,7 @@ const AdvisorsVisualization = () => {
 
   const resetFilters = () => {
     setSearchTerm("");
+    setFilterRegional("all");
     setFilterCoordinator("all");
     setFilterZoneLeader("all");
     setFilterSalesManager("all");
@@ -139,8 +154,10 @@ const AdvisorsVisualization = () => {
     setFullName("");
     setEmail("");
     setPhone("");
+    setAdvisorCode("");
     setSalesManager("");
     setZoneLeader("");
+    setRegional("");
     setZonalCoordinator("");
     setIsActive(true);
     setEditingAdvisor(null);
@@ -151,8 +168,10 @@ const AdvisorsVisualization = () => {
     setFullName(advisor.full_name);
     setEmail(advisor.email);
     setPhone(advisor.phone || "");
+    setAdvisorCode(advisor.advisor_code || "");
     setSalesManager(advisor.sales_manager || "");
     setZoneLeader(advisor.zone_leader || "");
+    setRegional(advisor.regional || "");
     setZonalCoordinator(advisor.zonal_coordinator || "");
     setIsActive(advisor.is_active);
     setDialogOpen(true);
@@ -171,8 +190,10 @@ const AdvisorsVisualization = () => {
           full_name: fullName,
           email: email,
           phone: phone || null,
+          advisor_code: advisorCode || null,
           sales_manager: salesManager || null,
           zone_leader: zoneLeader || null,
+          regional: regional || null,
           zonal_coordinator: zonalCoordinator || null,
           is_active: isActive,
         })
@@ -257,11 +278,13 @@ const AdvisorsVisualization = () => {
   };
 
   const exportToCSV = () => {
-    const headers = ["Nombre", "Email", "Teléfono", "Jefe Ventas", "Líder Zona", "Coordinador", "Estado"];
+    const headers = ["Nombre", "Email", "Código", "Teléfono", "Regional", "Jefe Ventas", "Líder Zona", "Coordinador", "Estado"];
     const rows = filteredAdvisors.map(a => [
       a.full_name,
       a.email,
+      a.advisor_code || "",
       a.phone || "",
+      a.regional || "",
       a.sales_manager || "",
       a.zone_leader || "",
       a.zonal_coordinator || "",
@@ -393,10 +416,25 @@ const AdvisorsVisualization = () => {
                 </Label>
                 <Input
                   id="search"
-                  placeholder="Nombre, email o teléfono..."
+                  placeholder="Nombre, email, código o teléfono..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Regional</Label>
+                <Select value={filterRegional} onValueChange={setFilterRegional}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {regionals.map(r => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -477,7 +515,9 @@ const AdvisorsVisualization = () => {
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Código</TableHead>
                   <TableHead>Teléfono</TableHead>
+                  <TableHead>Regional</TableHead>
                   <TableHead>Jefe Ventas</TableHead>
                   <TableHead>Líder Zona</TableHead>
                   <TableHead>Coordinador</TableHead>
@@ -488,7 +528,7 @@ const AdvisorsVisualization = () => {
               <TableBody>
                 {filteredAdvisors.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center text-muted-foreground">
                       No hay asesores que coincidan con los filtros
                     </TableCell>
                   </TableRow>
@@ -497,7 +537,9 @@ const AdvisorsVisualization = () => {
                     <TableRow key={advisor.id}>
                       <TableCell className="font-medium">{advisor.full_name}</TableCell>
                       <TableCell className="text-sm">{advisor.email}</TableCell>
+                      <TableCell className="text-sm">{advisor.advisor_code || "-"}</TableCell>
                       <TableCell>{advisor.phone || "-"}</TableCell>
+                      <TableCell className="text-sm">{advisor.regional || "-"}</TableCell>
                       <TableCell className="text-sm">{advisor.sales_manager || "-"}</TableCell>
                       <TableCell className="text-sm">{advisor.zone_leader || "-"}</TableCell>
                       <TableCell className="text-sm">{advisor.zonal_coordinator || "-"}</TableCell>
@@ -570,16 +612,36 @@ const AdvisorsVisualization = () => {
                 />
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Teléfono</Label>
-                <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="advisorCode">Código de Asesor</Label>
+                  <Input
+                    id="advisorCode"
+                    value={advisorCode}
+                    onChange={(e) => setAdvisorCode(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="phone">Teléfono</Label>
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="regional">Regional</Label>
+                  <Input
+                    id="regional"
+                    value={regional}
+                    onChange={(e) => setRegional(e.target.value)}
+                  />
+                </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="salesManager">Jefe de Ventas</Label>
                   <Input
@@ -588,7 +650,9 @@ const AdvisorsVisualization = () => {
                     onChange={(e) => setSalesManager(e.target.value)}
                   />
                 </div>
+              </div>
 
+              <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="zoneLeader">Líder de Zona</Label>
                   <Input
