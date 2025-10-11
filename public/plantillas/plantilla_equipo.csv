@@ -1,0 +1,7 @@
+Nombre_Completo;Cedula;Email;Telefono;Departamento;Cargo;Fecha_Contratacion;Roles
+Juan Pérez González;1234567890;juan.perez@example.com;3001234567;Ventas;Asesor Comercial;2024-01-15;comercial
+María López Rodríguez;9876543210;maria.lopez@example.com;3109876543;Cartera;Analista de Cartera;2024-02-01;cartera
+Carlos Rodríguez Gómez;5555555555;carlos.rodriguez@example.com;3155555555;Administración;Asistente Administrativo;2024-03-10;administrativo
+Ana Martínez Silva;1111111111;ana.martinez@example.com;3201111111;Ventas;Gerente Comercial;2024-01-10;comercial,admin
+Luis Torres Pérez;2222222222;luis.torres@example.com;3132222222;Cartera;Coordinador de Cartera;2024-02-15;cartera
+Sandra García López;3333333333;sandra.garcia@example.com;3143333333;Administración;Jefe Administrativo;2024-03-01;administrativo,admin

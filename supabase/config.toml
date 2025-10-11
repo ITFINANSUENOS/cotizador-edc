@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.import-advisors-csv]
 verify_jwt = true
+
+[functions.import-team-members-csv]
+verify_jwt = true

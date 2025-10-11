@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import AdvisorsManagement from "@/components/admin/AdvisorsManagement";
 import PriceListsManagement from "@/components/admin/PriceListsManagement";
 import SalesPlanConfig from "@/components/admin/SalesPlanConfig";
+import TeamManagement from "@/components/admin/TeamManagement";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -102,14 +103,19 @@ const Admin = () => {
 
         {/* Tabs de Gestión */}
         <Tabs defaultValue="advisors" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="advisors">Gestión de Asesores</TabsTrigger>
+            <TabsTrigger value="team">Equipo</TabsTrigger>
             <TabsTrigger value="prices">Listas de Precios</TabsTrigger>
             <TabsTrigger value="plans">Configuración de Planes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="advisors">
             <AdvisorsManagement />
+          </TabsContent>
+
+          <TabsContent value="team">
+            <TeamManagement />
           </TabsContent>
 
           <TabsContent value="prices">
