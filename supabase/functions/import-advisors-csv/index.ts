@@ -80,12 +80,12 @@ serve(async (req) => {
       const tempEmail = `asesor_${ccAsesor}@temporal.edc.com`
 
       try {
-        // Check if advisor already exists by CC
+        // Check if advisor already exists by email
         const { data: existing } = await supabaseClient
           .from('advisors')
-          .select('id')
+          .select('id, user_id')
           .eq('email', tempEmail)
-          .single()
+          .maybeSingle()
 
         if (existing) {
           // Update existing advisor
