@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, Calculator, CreditCard, FileText, HandshakeIcon } from "lucide-react";
+import { LogOut, Calculator, CreditCard, FileText, HandshakeIcon, Settings } from "lucide-react";
 
 // Mock data - En producción esto vendrá de Google Sheets
 const mockBrands = ["Samsung", "LG", "Whirlpool", "Haceb"];
@@ -36,6 +36,7 @@ const Cotizador = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // Selectores de producto
   const [selectedBrand, setSelectedBrand] = useState("");
@@ -63,6 +64,16 @@ const Cotizador = () => {
         navigate("/auth");
       } else {
         setUser(session.user);
+        
+        // Check if user has admin role
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .single();
+        
+        setIsAdmin(!!roleData);
       }
     };
     checkUser();
@@ -166,10 +177,18 @@ const Cotizador = () => {
                 Asesor: {user?.email}
               </CardDescription>
             </div>
-            <Button variant="outline" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Cerrar Sesión
-            </Button>
+            <div className="flex gap-2">
+              {isAdmin && (
+                <Button variant="outline" onClick={() => navigate("/admin")}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Panel Admin
+                </Button>
+              )}
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Cerrar Sesión
+              </Button>
+            </div>
           </CardHeader>
         </Card>
 

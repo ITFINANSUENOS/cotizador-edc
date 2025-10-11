@@ -90,9 +90,6 @@ const Admin = () => {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate("/")}>
-                Ir al Cotizador
-              </Button>
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Cerrar Sesión
