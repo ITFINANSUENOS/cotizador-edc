@@ -56,6 +56,27 @@ export type Database = {
         }
         Relationships: []
       }
+      permissions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       price_list_products: {
         Row: {
           base_price: number
@@ -237,6 +258,35 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          created_at: string | null
+          id: string
+          permission_id: string | null
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          permission_id?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          permission_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_plan_config: {
         Row: {
           config: Json
@@ -261,6 +311,51 @@ export type Database = {
           is_active?: boolean | null
           plan_type?: Database["public"]["Enums"]["sale_plan_type"]
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          document_id: string | null
+          email: string
+          full_name: string
+          hire_date: string | null
+          id: string
+          is_active: boolean | null
+          phone: string | null
+          position: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          document_id?: string | null
+          email: string
+          full_name: string
+          hire_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          phone?: string | null
+          position?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          document_id?: string | null
+          email?: string
+          full_name?: string
+          hire_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          phone?: string | null
+          position?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
