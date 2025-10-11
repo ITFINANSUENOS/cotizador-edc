@@ -133,7 +133,10 @@ const SalesPlanConfig = () => {
       const capitalPayment = baseMonthlyPayment - interest;
       
       // Total mensual = abono a capital + interés + aval
-      const totalMonthly = capitalPayment + interest + avalPayment;
+      const totalMonthlyBeforeRounding = capitalPayment + interest + avalPayment;
+      
+      // Redondear al millar superior
+      const totalMonthly = Math.ceil(totalMonthlyBeforeRounding / 1000) * 1000;
       
       table.push({
         month,
