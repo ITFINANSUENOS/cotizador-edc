@@ -22,14 +22,19 @@ const Cotizador = () => {
   const [productPrices, setProductPrices] = useState<any>(null);
   
   // Tipo de venta
-  const [saleType, setSaleType] = useState<"contado" | "credito" | "convenio">("contado");
+  const [saleType, setSaleType] = useState<"contado" | "credicontado" | "credito" | "convenio">("contado");
   const [installments, setInstallments] = useState(1);
   const [initialPayment, setInitialPayment] = useState(0);
+  const [selectedList, setSelectedList] = useState<1 | 2 | 3 | 4>(1); // Para contado
   
-  // Resetear cuotas cuando cambia el tipo de venta
-  const handleSaleTypeChange = (newType: "contado" | "credito" | "convenio") => {
+  // Resetear valores cuando cambia el tipo de venta
+  const handleSaleTypeChange = (newType: "contado" | "credicontado" | "credito" | "convenio") => {
     setSaleType(newType);
+    setInitialPayment(0);
     if (newType === "contado") {
+      setInstallments(1);
+      setSelectedList(1);
+    } else if (newType === "credicontado") {
       setInstallments(1);
     } else if (newType === "credito") {
       setInstallments(9);
@@ -104,26 +109,31 @@ const Cotizador = () => {
     let totalPrice = 0;
     let monthlyPayment = 0;
     let remainingBalance = 0;
-    let selectedListPrice = 0;
 
     switch (saleType) {
       case "contado":
-        // Para contado, usar las 4 listas según el número de cuotas
-        // 1 cuota = LISTA 1, 2-3 cuotas = LISTA 2, 4-5 cuotas = LISTA 3, 6 cuotas = LISTA 4
-        if (installments === 1) {
-          selectedListPrice = Number(priceData.list_1_price);
-        } else if (installments <= 3) {
-          selectedListPrice = Number(priceData.list_2_price || priceData.list_1_price);
-        } else if (installments <= 5) {
-          selectedListPrice = Number(priceData.list_3_price || priceData.list_1_price);
-        } else {
-          selectedListPrice = Number(priceData.list_4_price || priceData.list_1_price);
+        // Para contado, usar la lista seleccionada por el usuario
+        if (selectedList === 1) {
+          basePrice = Number(priceData.list_1_price);
+        } else if (selectedList === 2) {
+          basePrice = Number(priceData.list_2_price || priceData.list_1_price);
+        } else if (selectedList === 3) {
+          basePrice = Number(priceData.list_3_price || priceData.list_1_price);
+        } else if (selectedList === 4) {
+          basePrice = Number(priceData.list_4_price || priceData.list_1_price);
         }
         
-        basePrice = selectedListPrice;
         totalPrice = basePrice;
         remainingBalance = totalPrice - initialPayment;
-        monthlyPayment = remainingBalance / installments;
+        monthlyPayment = installments > 0 ? remainingBalance / installments : 0;
+        break;
+      
+      case "credicontado":
+        // Para credicontado usar el precio de credicontado con cálculo del 5%
+        basePrice = Number(priceData.credicontado_price || priceData.list_1_price);
+        totalPrice = basePrice;
+        remainingBalance = totalPrice - initialPayment;
+        monthlyPayment = installments > 0 ? remainingBalance / installments : 0;
         break;
       
       case "credito":
@@ -132,7 +142,7 @@ const Cotizador = () => {
         totalPrice = basePrice;
         remainingBalance = totalPrice - initialPayment;
         // Calcular amortización según el plazo
-        monthlyPayment = remainingBalance / installments;
+        monthlyPayment = installments > 0 ? remainingBalance / installments : 0;
         break;
       
       case "convenio":
@@ -140,7 +150,7 @@ const Cotizador = () => {
         basePrice = Number(priceData.convenio_price || priceData.list_1_price);
         totalPrice = basePrice;
         remainingBalance = totalPrice - initialPayment;
-        monthlyPayment = remainingBalance / installments;
+        monthlyPayment = installments > 0 ? remainingBalance / installments : 0;
         break;
     }
 
@@ -259,7 +269,7 @@ const Cotizador = () => {
         <ProductSelector onProductSelect={handleProductSelect} />
 
         {/* Tipo de Venta */}
-        {selectedProduct && (
+        {selectedProduct && productPrices && productPrices.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -269,19 +279,89 @@ const Cotizador = () => {
             </CardHeader>
             <CardContent>
               <Tabs value={saleType} onValueChange={(v) => handleSaleTypeChange(v as any)}>
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="contado">Contado</TabsTrigger>
+                  <TabsTrigger value="credicontado">CrediContado</TabsTrigger>
                   <TabsTrigger value="credito">Crédito</TabsTrigger>
                   <TabsTrigger value="convenio">Convenio</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="contado" className="space-y-4 mt-4">
                   <div className="space-y-2">
-                    <Label>Número de Cuotas (1-6)</Label>
+                    <Label>Seleccionar Lista de Precios</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        variant={selectedList === 1 ? "default" : "outline"}
+                        onClick={() => setSelectedList(1)}
+                        className="flex flex-col h-auto py-3"
+                      >
+                        <span className="font-semibold">LISTA 1</span>
+                        <span className="text-sm">${Number(productPrices[0].list_1_price).toLocaleString()}</span>
+                      </Button>
+                      <Button
+                        variant={selectedList === 2 ? "default" : "outline"}
+                        onClick={() => setSelectedList(2)}
+                        className="flex flex-col h-auto py-3"
+                      >
+                        <span className="font-semibold">LISTA 2</span>
+                        <span className="text-sm">${Number(productPrices[0].list_2_price || 0).toLocaleString()}</span>
+                      </Button>
+                      <Button
+                        variant={selectedList === 3 ? "default" : "outline"}
+                        onClick={() => setSelectedList(3)}
+                        className="flex flex-col h-auto py-3"
+                      >
+                        <span className="font-semibold">LISTA 3</span>
+                        <span className="text-sm">${Number(productPrices[0].list_3_price || 0).toLocaleString()}</span>
+                      </Button>
+                      <Button
+                        variant={selectedList === 4 ? "default" : "outline"}
+                        onClick={() => setSelectedList(4)}
+                        className="flex flex-col h-auto py-3"
+                      >
+                        <span className="font-semibold">LISTA 4</span>
+                        <span className="text-sm">${Number(productPrices[0].list_4_price || 0).toLocaleString()}</span>
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Número de Cuotas</Label>
                     <Input
                       type="number"
                       min={1}
-                      max={6}
+                      value={installments}
+                      onChange={(e) => setInstallments(Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cuota Inicial</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={initialPayment}
+                      onChange={(e) => setInitialPayment(Number(e.target.value))}
+                      placeholder="0"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="credicontado" className="space-y-4 mt-4">
+                  <div className="p-4 bg-accent/10 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Precio CrediContado:</span>
+                      <span className="text-xl font-bold text-primary">
+                        ${Number(productPrices[0].credicontado_price || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Cálculo con 5% de interés incluido
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Número de Cuotas</Label>
+                    <Input
+                      type="number"
+                      min={1}
                       value={installments}
                       onChange={(e) => setInstallments(Number(e.target.value))}
                     />
@@ -299,6 +379,17 @@ const Cotizador = () => {
                 </TabsContent>
 
                 <TabsContent value="credito" className="space-y-4 mt-4">
+                  <div className="p-4 bg-accent/10 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Base FINANSUEÑOS:</span>
+                      <span className="text-xl font-bold text-primary">
+                        ${Number(productPrices[0].credit_price || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Precio base para cálculo de amortización
+                    </p>
+                  </div>
                   <div className="space-y-2">
                     <Label>Plazo</Label>
                     <Select value={installments.toString()} onValueChange={(v) => setInstallments(Number(v))}>
@@ -326,6 +417,17 @@ const Cotizador = () => {
                 </TabsContent>
 
                 <TabsContent value="convenio" className="space-y-4 mt-4">
+                  <div className="p-4 bg-accent/10 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Precio Convenio:</span>
+                      <span className="text-xl font-bold text-primary">
+                        ${Number(productPrices[0].convenio_price || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Precio especial para convenios institucionales
+                    </p>
+                  </div>
                   <div className="space-y-2">
                     <Label>Número de Cuotas</Label>
                     <Input
