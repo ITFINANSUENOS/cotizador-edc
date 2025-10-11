@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, CreditCard, FileText, HandshakeIcon, Settings } from "lucide-react";
+import { LogOut, CreditCard, FileText, HandshakeIcon, Settings, ChevronDown, ChevronUp } from "lucide-react";
 import ProductSelector from "@/components/cotizador/ProductSelector";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const Cotizador = () => {
   const navigate = useNavigate();
@@ -51,6 +52,9 @@ const Cotizador = () => {
   const [clientName, setClientName] = useState("");
   const [clientId, setClientId] = useState("");
   const [clientPhone, setClientPhone] = useState("");
+  
+  // Amortización
+  const [showAmortization, setShowAmortization] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -94,6 +98,43 @@ const Cotizador = () => {
     setProductPrices(prices);
     setQuote(null);
     setShowClientForm(false);
+    
+    // Para contado y convenio, calcular automáticamente
+    if (saleType === "contado" || saleType === "convenio") {
+      // Se calculará cuando el usuario seleccione la lista (para contado) o inmediatamente (para convenio)
+      if (saleType === "convenio") {
+        setTimeout(() => calculateQuote(), 100);
+      }
+    }
+  };
+
+  // Función para calcular tabla de amortización
+  const calculateAmortization = (basePrice: number, months: number) => {
+    const avalRate = 0.02; // 2%
+    const interestRate = 0.0187; // 1.87% mensual
+    
+    let balance = basePrice;
+    const schedule = [];
+    
+    for (let i = 1; i <= months; i++) {
+      const aval = balance * avalRate;
+      const interest = balance * interestRate;
+      const principal = (basePrice / months);
+      const payment = principal + interest + aval;
+      
+      schedule.push({
+        month: i,
+        balance: balance,
+        principal: principal,
+        interest: interest,
+        aval: aval,
+        payment: payment
+      });
+      
+      balance -= principal;
+    }
+    
+    return schedule;
   };
 
   const calculateQuote = () => {
@@ -165,7 +206,10 @@ const Cotizador = () => {
       productId: selectedProduct.id
     });
 
-    setShowClientForm(true);
+    // Para contado y convenio, mostrar directamente el formulario
+    if (saleType === "contado" || saleType === "convenio") {
+      setShowClientForm(true);
+    }
   };
 
   const handleSubmitQuote = async () => {
@@ -291,7 +335,10 @@ const Cotizador = () => {
                     <div className="grid grid-cols-2 gap-3">
                       <Button
                         variant={selectedList === 1 ? "default" : "outline"}
-                        onClick={() => setSelectedList(1)}
+                        onClick={() => {
+                          setSelectedList(1);
+                          setTimeout(() => calculateQuote(), 100);
+                        }}
                         className="flex flex-col h-auto py-3"
                       >
                         <span className="font-semibold">LISTA 1</span>
@@ -299,7 +346,10 @@ const Cotizador = () => {
                       </Button>
                       <Button
                         variant={selectedList === 2 ? "default" : "outline"}
-                        onClick={() => setSelectedList(2)}
+                        onClick={() => {
+                          setSelectedList(2);
+                          setTimeout(() => calculateQuote(), 100);
+                        }}
                         className="flex flex-col h-auto py-3"
                       >
                         <span className="font-semibold">LISTA 2</span>
@@ -307,7 +357,10 @@ const Cotizador = () => {
                       </Button>
                       <Button
                         variant={selectedList === 3 ? "default" : "outline"}
-                        onClick={() => setSelectedList(3)}
+                        onClick={() => {
+                          setSelectedList(3);
+                          setTimeout(() => calculateQuote(), 100);
+                        }}
                         className="flex flex-col h-auto py-3"
                       >
                         <span className="font-semibold">LISTA 3</span>
@@ -315,7 +368,10 @@ const Cotizador = () => {
                       </Button>
                       <Button
                         variant={selectedList === 4 ? "default" : "outline"}
-                        onClick={() => setSelectedList(4)}
+                        onClick={() => {
+                          setSelectedList(4);
+                          setTimeout(() => calculateQuote(), 100);
+                        }}
                         className="flex flex-col h-auto py-3"
                       >
                         <span className="font-semibold">LISTA 4</span>
@@ -401,15 +457,18 @@ const Cotizador = () => {
                 </TabsContent>
               </Tabs>
 
-              <Button onClick={calculateQuote} className="w-full mt-6">
-                Calcular Cotización
-              </Button>
+              {/* Botón solo para credicontado y crédito */}
+              {(saleType === "credicontado" || saleType === "credito") && (
+                <Button onClick={calculateQuote} className="w-full mt-6">
+                  Calcular Cotización
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
 
-        {/* Resultado */}
-        {quote && (
+        {/* Resultado - Solo para CrediContado y Crédito */}
+        {quote && (saleType === "credicontado" || saleType === "credito") && (
           <Card className="border-primary">
             <CardHeader>
               <CardTitle className="flex items-center text-primary">
@@ -422,19 +481,27 @@ const Cotizador = () => {
                 <span className="font-medium">Precio Base:</span>
                 <span className="font-bold">${quote.basePrice.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="font-medium">Precio Total:</span>
-                <span className="font-bold text-primary">${quote.totalPrice.toLocaleString()}</span>
-              </div>
-              {quote.initialPayment > 0 && (
+              {saleType === "credicontado" && quote.initialPayment > 0 && (
                 <div className="flex justify-between py-2 border-b">
                   <span className="font-medium">Cuota Inicial:</span>
                   <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
                 </div>
               )}
+              {saleType === "credicontado" && (
+                <>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Saldo después de Cuota Inicial:</span>
+                    <span className="font-bold">${quote.remainingBalance.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Financiación ({quote.installments * 5}%):</span>
+                    <span className="font-bold">${(quote.totalPrice - quote.remainingBalance).toLocaleString()}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between py-2 border-b">
-                <span className="font-medium">Saldo Restante:</span>
-                <span className="font-bold">${quote.remainingBalance.toLocaleString()}</span>
+                <span className="font-medium">Precio Total:</span>
+                <span className="font-bold text-primary">${quote.totalPrice.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="font-medium">Número de Cuotas:</span>
@@ -442,8 +509,48 @@ const Cotizador = () => {
               </div>
               <div className="flex justify-between py-3 bg-accent/10 px-4 rounded-lg">
                 <span className="font-bold text-lg">Cuota Mensual:</span>
-                <span className="font-bold text-xl text-accent">${quote.monthlyPayment.toLocaleString()}</span>
+                <span className="font-bold text-xl text-accent">${Math.round(quote.monthlyPayment).toLocaleString()}</span>
               </div>
+              
+              {/* Tabla de Amortización - Solo para Crédito */}
+              {saleType === "credito" && (
+                <Collapsible open={showAmortization} onOpenChange={setShowAmortization}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" className="w-full mt-4">
+                      {showAmortization ? <ChevronUp className="w-4 h-4 mr-2" /> : <ChevronDown className="w-4 h-4 mr-2" />}
+                      Amortización
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2 px-2">Mes</th>
+                            <th className="text-right py-2 px-2">Saldo</th>
+                            <th className="text-right py-2 px-2">Abono Capital</th>
+                            <th className="text-right py-2 px-2">Interés</th>
+                            <th className="text-right py-2 px-2">Aval</th>
+                            <th className="text-right py-2 px-2">Cuota</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {calculateAmortization(quote.basePrice, quote.installments).map((row) => (
+                            <tr key={row.month} className="border-b">
+                              <td className="py-2 px-2">{row.month}</td>
+                              <td className="text-right py-2 px-2">${Math.round(row.balance).toLocaleString()}</td>
+                              <td className="text-right py-2 px-2">${Math.round(row.principal).toLocaleString()}</td>
+                              <td className="text-right py-2 px-2">${Math.round(row.interest).toLocaleString()}</td>
+                              <td className="text-right py-2 px-2">${Math.round(row.aval).toLocaleString()}</td>
+                              <td className="text-right py-2 px-2 font-bold">${Math.round(row.payment).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </CardContent>
           </Card>
         )}
