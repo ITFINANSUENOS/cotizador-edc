@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { LogOut, CreditCard, FileText, HandshakeIcon, Settings, ChevronDown, ChevronUp } from "lucide-react";
 import ProductSelector from "@/components/cotizador/ProductSelector";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Cotizador = () => {
   const navigate = useNavigate();
@@ -55,6 +56,11 @@ const Cotizador = () => {
   
   // Amortización
   const [showAmortization, setShowAmortization] = useState(false);
+  
+  // Procesos adicionales
+  const [inicialMayor, setInicialMayor] = useState(false);
+  const [inicialMayorValue, setInicialMayorValue] = useState(0);
+  const [adjustedBasePrice, setAdjustedBasePrice] = useState(0);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -108,19 +114,25 @@ const Cotizador = () => {
     }
   };
 
-  // Función para calcular tabla de amortización
+  // Función para calcular tabla de amortización con sistema francés
   const calculateAmortization = (basePrice: number, months: number) => {
     const avalRate = 0.02; // 2% del precio base (fijo en todas las cuotas)
     const interestRate = 0.0187; // 1.87% mensual sobre saldo
     
     const fixedAval = basePrice * avalRate; // Aval fijo para todas las cuotas
-    const principal = basePrice / months; // Abono a capital fijo
+    
+    // Calcular cuota fija sin aval (solo capital + interés)
+    // Fórmula: P * [r(1+r)^n] / [(1+r)^n - 1]
+    const r = interestRate;
+    const n = months;
+    const fixedPaymentWithoutAval = basePrice * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     
     let balance = basePrice;
     const schedule = [];
     
     for (let i = 1; i <= months; i++) {
       const interest = balance * interestRate;
+      const principal = fixedPaymentWithoutAval - interest; // El abono a capital aumenta cada mes
       const payment = principal + interest + fixedAval;
       
       schedule.push({
@@ -181,13 +193,29 @@ const Cotizador = () => {
       case "credito":
         // Para crédito usar BASE FINANSUEÑOS (credit_price) con amortización
         basePrice = Number(priceData.credit_price || priceData.list_1_price);
+        
+        // Si hay inicial mayor, ajustar el precio base
+        if (inicialMayor && inicialMayorValue > 0) {
+          const minInitial = basePrice * 0.02; // El aval mínimo como referencia
+          const firstPayment = calculateAmortization(basePrice, installments)[0].payment;
+          
+          if (inicialMayorValue >= firstPayment) {
+            const excess = inicialMayorValue - firstPayment;
+            basePrice = basePrice - excess;
+            setAdjustedBasePrice(basePrice);
+          }
+        }
+        
         remainingBalance = basePrice;
         totalPrice = basePrice;
-        // Calcular la cuota mensual incluyendo aval + interés + abono a capital
+        
+        // Calcular la cuota mensual usando el sistema francés
+        const r = 0.0187;
+        const n = installments;
+        const fixedPaymentWithoutAval = basePrice * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
         const avalFijo = basePrice * 0.02;
-        const abonoCapital = basePrice / installments;
-        const interesInicial = basePrice * 0.0187;
-        monthlyPayment = abonoCapital + interesInicial + avalFijo;
+        const interesInicial = basePrice * r;
+        monthlyPayment = fixedPaymentWithoutAval + avalFijo;
         break;
       
       case "convenio":
@@ -464,9 +492,85 @@ const Cotizador = () => {
 
               {/* Botón solo para credicontado y crédito */}
               {(saleType === "credicontado" || saleType === "credito") && (
-                <Button onClick={calculateQuote} className="w-full mt-6">
-                  Calcular Cotización
-                </Button>
+                <>
+                  <Button onClick={calculateQuote} className="w-full mt-6">
+                    Calcular Cotización
+                  </Button>
+                  
+                  {/* Procesos adicionales - Solo para Crédito */}
+                  {saleType === "credito" && quote && (
+                    <div className="mt-6 space-y-4 p-4 border rounded-lg bg-muted/30">
+                      <h3 className="font-semibold text-sm">Procesos Adicionales</h3>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-start space-x-3">
+                          <Checkbox 
+                            id="inicial-mayor" 
+                            checked={inicialMayor}
+                            onCheckedChange={(checked) => {
+                              setInicialMayor(checked as boolean);
+                              if (checked) {
+                                setInicialMayorValue(Math.round(quote.monthlyPayment));
+                              } else {
+                                setInicialMayorValue(0);
+                                setAdjustedBasePrice(0);
+                              }
+                            }}
+                          />
+                          <div className="flex-1 space-y-2">
+                            <Label htmlFor="inicial-mayor" className="text-sm font-medium cursor-pointer">
+                              Inicial Mayor
+                            </Label>
+                            {inicialMayor && (
+                              <div className="space-y-1">
+                                <Input
+                                  type="number"
+                                  value={inicialMayorValue}
+                                  onChange={(e) => {
+                                    const value = Number(e.target.value);
+                                    const minValue = Math.round(quote.monthlyPayment);
+                                    if (value >= minValue) {
+                                      setInicialMayorValue(value);
+                                    } else {
+                                      toast.error(`El valor mínimo es $${minValue.toLocaleString()}`);
+                                    }
+                                  }}
+                                  min={Math.round(quote.monthlyPayment)}
+                                  placeholder={`Mínimo: $${Math.round(quote.monthlyPayment).toLocaleString()}`}
+                                  className="mt-2"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  Excedente: ${(inicialMayorValue - Math.round(quote.monthlyPayment)).toLocaleString()}
+                                </p>
+                                <Button 
+                                  size="sm" 
+                                  onClick={calculateQuote}
+                                  className="mt-2 w-full"
+                                >
+                                  Recalcular con Inicial Mayor
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 opacity-50">
+                          <Checkbox id="retanqueo-fs" disabled />
+                          <Label htmlFor="retanqueo-fs" className="text-sm">
+                            Retanqueo FS a FS <span className="text-xs text-muted-foreground">(Próximamente)</span>
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 opacity-50">
+                          <Checkbox id="retanqueo-edc" disabled />
+                          <Label htmlFor="retanqueo-edc" className="text-sm">
+                            Retanqueo EdC a FS <span className="text-xs text-muted-foreground">(Próximamente)</span>
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
