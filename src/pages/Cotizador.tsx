@@ -12,6 +12,7 @@ import { LogOut, CreditCard, FileText, HandshakeIcon, Settings, ChevronDown, Che
 import ProductSelector from "@/components/cotizador/ProductSelector";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
+import QuotesHistory from "@/components/cotizador/QuotesHistory";
 
 const Cotizador = () => {
   const navigate = useNavigate();
@@ -81,6 +82,9 @@ const Cotizador = () => {
   const [retanqueoEdC, setRetanqueoEdC] = useState(false);
   const [saldoArpesod, setSaldoArpesod] = useState(0);
   const [nuevaBaseFS, setNuevaBaseFS] = useState(0);
+  
+  // Historial de cotizaciones
+  const [showQuotesHistory, setShowQuotesHistory] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -246,41 +250,47 @@ const Cotizador = () => {
           const nuevoTotal = pagoTotal + saldoArpesod;
           
           // Nueva cuota mensual objetivo = NUEVO TOTAL / Número de Cuotas
-          const nuevaCuotaObjetivo = nuevoTotal / installments;
+          const nuevaCuotaObjetivo = Math.ceil((nuevoTotal / installments) / 1000) * 1000;
           
-          // Calcular Nueva Base FS iterativamente para que la cuota no supere el objetivo
-          // Usando búsqueda binaria para encontrar la base correcta
+          // Calcular Nueva Base FS usando búsqueda binaria inversa
+          // Necesitamos encontrar la base que al amortizarla dé la cuota objetivo
           const r = 0.0187;
           const n = installments;
           
           let baseMin = 0;
-          let baseMax = nuevoTotal * 2; // Límite superior generoso
-          let nuevaBase = nuevoTotal;
-          let iteraciones = 0;
+          let baseMax = nuevoTotal * 3;
+          let nuevaBase = 0;
+          let mejorBase = 0;
+          let menorDiferencia = Infinity;
           
-          // Búsqueda binaria para encontrar la base que da la cuota correcta
-          while (baseMax - baseMin > 1 && iteraciones < 50) {
+          // Búsqueda binaria más precisa
+          for (let i = 0; i < 100; i++) {
             const basePrueba = (baseMin + baseMax) / 2;
             
-            // Calcular cuota con esta base de prueba
+            // Calcular cuota con esta base de prueba usando la misma fórmula de amortización
             const fixedPaymentWithoutAval = basePrueba * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
             const avalFijo = basePrueba * 0.02;
-            const cuotaCalculada = fixedPaymentWithoutAval + avalFijo;
+            const cuotaCalculada = Math.ceil((fixedPaymentWithoutAval + avalFijo) / 1000) * 1000;
             
-            if (cuotaCalculada > nuevaCuotaObjetivo) {
-              // La cuota es muy alta, reducir la base
-              baseMax = basePrueba;
-            } else {
-              // La cuota es menor o igual, podemos intentar con una base mayor
-              baseMin = basePrueba;
-              nuevaBase = basePrueba;
+            const diferencia = Math.abs(cuotaCalculada - nuevaCuotaObjetivo);
+            
+            if (diferencia < menorDiferencia) {
+              menorDiferencia = diferencia;
+              mejorBase = basePrueba;
             }
             
-            iteraciones++;
+            if (cuotaCalculada < nuevaCuotaObjetivo) {
+              baseMin = basePrueba;
+            } else if (cuotaCalculada > nuevaCuotaObjetivo) {
+              baseMax = basePrueba;
+            } else {
+              mejorBase = basePrueba;
+              break;
+            }
           }
           
           // Redondear la nueva base a múltiplos de 1000
-          nuevaBase = Math.round(nuevaBase / 1000) * 1000;
+          nuevaBase = Math.round(mejorBase / 1000) * 1000;
           
           basePrice = nuevaBase;
           setNuevaBaseFS(nuevaBase);
@@ -338,8 +348,8 @@ const Cotizador = () => {
   };
 
   const handleSubmitQuote = async () => {
-    if (!clientName || !clientId || !clientPhone) {
-      toast.error("Por favor completa todos los campos del cliente");
+    if (!clientName || !clientPhone) {
+      toast.error("Por favor completa el nombre y celular del cliente");
       return;
     }
 
@@ -378,7 +388,7 @@ const Cotizador = () => {
           installments: quote.installments,
           monthly_payment: quote.monthlyPayment,
           client_name: clientName,
-          client_id_number: clientId,
+          client_id_number: clientId || "",
           client_phone: clientPhone
         });
 
@@ -425,6 +435,10 @@ const Cotizador = () => {
                   Panel Admin
                 </Button>
               )}
+              <Button variant="outline" onClick={() => setShowQuotesHistory(true)}>
+                <FileText className="w-4 h-4 mr-2" />
+                Cotizaciones
+              </Button>
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Cerrar Sesión
@@ -846,7 +860,7 @@ const Cotizador = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Cédula</Label>
+                <Label>Cédula (Opcional)</Label>
                 <Input
                   value={clientId}
                   onChange={(e) => setClientId(e.target.value)}
@@ -868,6 +882,11 @@ const Cotizador = () => {
           </Card>
         )}
       </div>
+      
+      {/* Modal de Historial de Cotizaciones */}
+      {showQuotesHistory && (
+        <QuotesHistory onClose={() => setShowQuotesHistory(false)} />
+      )}
     </div>
   );
 };
