@@ -61,6 +61,7 @@ const Cotizador = () => {
   const [inicialMayor, setInicialMayor] = useState(false);
   const [inicialMayorValue, setInicialMayorValue] = useState(0);
   const [adjustedBasePrice, setAdjustedBasePrice] = useState(0);
+  const [originalMonthlyPayment, setOriginalMonthlyPayment] = useState(0);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -195,19 +196,29 @@ const Cotizador = () => {
         const originalBasePrice = Number(priceData.credit_price || priceData.list_1_price);
         basePrice = originalBasePrice;
         
+        // Calcular la cuota original sin inicial mayor
+        const r_original = 0.0187;
+        const n_original = installments;
+        const fixedPaymentWithoutAval_original = originalBasePrice * (r_original * Math.pow(1 + r_original, n_original)) / (Math.pow(1 + r_original, n_original) - 1);
+        const avalFijo_original = originalBasePrice * 0.02;
+        const originalPayment = fixedPaymentWithoutAval_original + avalFijo_original;
+        
         // Si hay inicial mayor, validar y ajustar el precio base
         if (inicialMayor && inicialMayorValue > 0) {
-          const firstPayment = calculateAmortization(originalBasePrice, installments)[0].payment;
+          const roundedOriginalPayment = Math.ceil(originalPayment / 1000) * 1000;
           
-          if (inicialMayorValue < firstPayment) {
-            toast.error(`La inicial mayor debe ser al menos $${Math.ceil(firstPayment / 1000) * 1000}.toLocaleString()`);
+          if (inicialMayorValue < roundedOriginalPayment) {
+            toast.error(`La inicial mayor debe ser al menos $${roundedOriginalPayment.toLocaleString()}`);
             return;
           }
           
-          const excess = inicialMayorValue - firstPayment;
+          const excess = inicialMayorValue - roundedOriginalPayment;
           basePrice = originalBasePrice - excess;
           setAdjustedBasePrice(basePrice);
         }
+        
+        // Guardar la cuota original para mostrarla en "Inicial Mayor"
+        setOriginalMonthlyPayment(originalPayment);
         
         remainingBalance = basePrice;
         totalPrice = basePrice;
@@ -513,7 +524,7 @@ const Cotizador = () => {
                             onCheckedChange={(checked) => {
                               setInicialMayor(checked as boolean);
                               if (checked) {
-                                setInicialMayorValue(Math.round(quote.monthlyPayment));
+                                setInicialMayorValue(Math.ceil(originalMonthlyPayment / 1000) * 1000);
                               } else {
                                 setInicialMayorValue(0);
                                 setAdjustedBasePrice(0);
@@ -532,11 +543,11 @@ const Cotizador = () => {
                                   onChange={(e) => {
                                     setInicialMayorValue(Number(e.target.value) || 0);
                                   }}
-                                  placeholder={`Mínimo: $${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}`}
+                                  placeholder={`Mínimo: $${(Math.ceil(originalMonthlyPayment / 1000) * 1000).toLocaleString()}`}
                                   className="mt-2"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                  Excedente: ${Math.max(0, inicialMayorValue - (Math.ceil(quote.monthlyPayment / 1000) * 1000)).toLocaleString()}
+                                  Excedente: ${Math.max(0, inicialMayorValue - (Math.ceil(originalMonthlyPayment / 1000) * 1000)).toLocaleString()}
                                 </p>
                                 <Button 
                                   size="sm" 
