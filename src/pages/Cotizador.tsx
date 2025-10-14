@@ -40,6 +40,9 @@ const Cotizador = () => {
     setInicialMayorValue(0);
     setAdjustedBasePrice(0);
     setOriginalMonthlyPayment(0);
+    setRetanqueoEdC(false);
+    setSaldoArpesod(0);
+    setNuevaBaseFS(0);
     setClientName("");
     setClientId("");
     setClientPhone("");
@@ -73,6 +76,11 @@ const Cotizador = () => {
   const [inicialMayorValue, setInicialMayorValue] = useState(0);
   const [adjustedBasePrice, setAdjustedBasePrice] = useState(0);
   const [originalMonthlyPayment, setOriginalMonthlyPayment] = useState(0);
+  
+  // Retanqueo EdC a FS
+  const [retanqueoEdC, setRetanqueoEdC] = useState(false);
+  const [saldoArpesod, setSaldoArpesod] = useState(0);
+  const [nuevaBaseFS, setNuevaBaseFS] = useState(0);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -207,7 +215,7 @@ const Cotizador = () => {
         const originalBasePrice = Number(priceData.credit_price || priceData.list_1_price);
         basePrice = originalBasePrice;
         
-        // Calcular la cuota original sin inicial mayor
+        // Calcular la cuota original sin inicial mayor ni retanqueo
         const r_original = 0.0187;
         const n_original = installments;
         const fixedPaymentWithoutAval_original = originalBasePrice * (r_original * Math.pow(1 + r_original, n_original)) / (Math.pow(1 + r_original, n_original) - 1);
@@ -215,7 +223,7 @@ const Cotizador = () => {
         const originalPayment = fixedPaymentWithoutAval_original + avalFijo_original;
         
         // Si hay inicial mayor, validar y ajustar el precio base
-        if (inicialMayor && inicialMayorValue > 0) {
+        if (inicialMayor && inicialMayorValue > 0 && !retanqueoEdC) {
           const roundedOriginalPayment = Math.ceil(originalPayment / 1000) * 1000;
           
           if (inicialMayorValue < roundedOriginalPayment) {
@@ -226,6 +234,36 @@ const Cotizador = () => {
           const excess = inicialMayorValue - roundedOriginalPayment;
           basePrice = originalBasePrice - excess;
           setAdjustedBasePrice(basePrice);
+        }
+        
+        // Si hay retanqueo EdC a FS
+        if (retanqueoEdC && saldoArpesod > 0) {
+          // Calcular cuota mensual actual
+          const currentMonthlyPayment = Math.ceil(originalPayment / 1000) * 1000;
+          
+          // Calcular NUEVO TOTAL: (Cuota Mensual × Número de Cuotas) + Saldo Arpesod
+          const pagoTotal = currentMonthlyPayment * installments;
+          const nuevoTotal = pagoTotal + saldoArpesod;
+          
+          // Nueva cuota mensual = NUEVO TOTAL / Número de Cuotas
+          const nuevaCuotaMensual = nuevoTotal / installments;
+          
+          // Calcular Nueva Base FS (trabajar hacia atrás desde la nueva cuota)
+          // Fórmula inversa: Base = Cuota / ((r(1+r)^n / ((1+r)^n - 1)) + 0.02)
+          const r = 0.0187;
+          const n = installments;
+          const factorAmortizacion = (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+          const nuevaBase = nuevaCuotaMensual / (factorAmortizacion + 0.02);
+          
+          basePrice = nuevaBase;
+          setNuevaBaseFS(nuevaBase);
+          monthlyPayment = nuevaCuotaMensual;
+          
+          // Guardar el original payment para mostrar
+          setOriginalMonthlyPayment(originalPayment);
+          remainingBalance = basePrice;
+          totalPrice = basePrice;
+          break;
         }
         
         // Guardar la cuota original para mostrarla en "Inicial Mayor"
@@ -261,11 +299,13 @@ const Cotizador = () => {
       saleType,
       priceListId: priceData.price_list_id,
       productId: selectedProduct.id,
-      originalBasePrice: saleType === "credito" && inicialMayor ? Number(productPrices[0].credit_price || productPrices[0].list_1_price) : basePrice
+      originalBasePrice: saleType === "credito" && (inicialMayor || retanqueoEdC) ? Number(productPrices[0].credit_price || productPrices[0].list_1_price) : basePrice,
+      saldoArpesod: retanqueoEdC ? saldoArpesod : 0,
+      nuevaBaseFS: retanqueoEdC ? nuevaBaseFS : 0
     });
 
-    // Para contado y convenio, mostrar directamente el formulario
-    if (saleType === "contado" || saleType === "convenio") {
+    // Mostrar formulario de cliente según el tipo de venta
+    if (saleType === "contado" || saleType === "convenio" || saleType === "credicontado" || saleType === "credito") {
       setShowClientForm(true);
     }
   };
@@ -465,8 +505,8 @@ const Cotizador = () => {
                     <Input
                       type="number"
                       min={0}
-                      value={initialPayment}
-                      onChange={(e) => setInitialPayment(Number(e.target.value))}
+                      value={initialPayment || ""}
+                      onChange={(e) => setInitialPayment(Number(e.target.value) || 0)}
                       placeholder="0"
                     />
                   </div>
@@ -579,11 +619,43 @@ const Cotizador = () => {
                           </Label>
                         </div>
                         
-                        <div className="flex items-center space-x-3 opacity-50">
-                          <Checkbox id="retanqueo-edc" disabled />
-                          <Label htmlFor="retanqueo-edc" className="text-sm">
-                            Retanqueo EdC a FS <span className="text-xs text-muted-foreground">(Próximamente)</span>
-                          </Label>
+                        <div className="flex items-start space-x-3">
+                          <Checkbox 
+                            id="retanqueo-edc"
+                            checked={retanqueoEdC}
+                            onCheckedChange={(checked) => {
+                              setRetanqueoEdC(checked as boolean);
+                              if (!checked) {
+                                setSaldoArpesod(0);
+                                setNuevaBaseFS(0);
+                              }
+                            }}
+                          />
+                          <div className="flex-1 space-y-2">
+                            <Label htmlFor="retanqueo-edc" className="text-sm font-medium cursor-pointer">
+                              Retanqueo EdC a FS
+                            </Label>
+                            {retanqueoEdC && (
+                              <div className="space-y-1">
+                                <Input
+                                  type="number"
+                                  value={saldoArpesod || ""}
+                                  onChange={(e) => {
+                                    setSaldoArpesod(Number(e.target.value) || 0);
+                                  }}
+                                  placeholder="Saldo Arpesod"
+                                  className="mt-2"
+                                />
+                                <Button 
+                                  size="sm" 
+                                  onClick={calculateQuote}
+                                  className="mt-2 w-full"
+                                >
+                                  Recalcular con Retanqueo
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -604,7 +676,30 @@ const Cotizador = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {saleType === "credito" && inicialMayor && quote.originalBasePrice ? (
+              {saleType === "credito" && retanqueoEdC && quote.saldoArpesod && quote.saldoArpesod > 0 ? (
+                <>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Precio Base:</span>
+                    <span className="font-bold">${quote.originalBasePrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Saldo Arpesod:</span>
+                    <span className="font-bold text-orange-600">${quote.saldoArpesod.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Nueva Base FS:</span>
+                    <span className="font-bold text-primary">${Math.round(quote.nuevaBaseFS).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Número de Cuotas:</span>
+                    <span className="font-bold">{quote.installments}</span>
+                  </div>
+                  <div className="flex justify-between py-3 bg-accent/10 px-4 rounded-lg">
+                    <span className="font-bold text-lg">Cuota Mensual:</span>
+                    <span className="font-bold text-xl text-accent">${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}</span>
+                  </div>
+                </>
+              ) : saleType === "credito" && inicialMayor && quote.originalBasePrice ? (
                 <>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Precio Base:</span>
@@ -660,8 +755,8 @@ const Cotizador = () => {
                 <span className="font-bold text-xl text-accent">${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}</span>
               </div>
               
-              {/* Tabla de Amortización - Solo para Crédito */}
-              {saleType === "credito" && (
+              {/* Tabla de Amortización - Solo para Crédito sin Retanqueo */}
+              {saleType === "credito" && !retanqueoEdC && (
                 <Collapsible open={showAmortization} onOpenChange={setShowAmortization}>
                   <CollapsibleTrigger asChild>
                     <Button variant="outline" className="w-full mt-4">
