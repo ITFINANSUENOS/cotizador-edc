@@ -33,6 +33,17 @@ const Cotizador = () => {
   const handleSaleTypeChange = (newType: "contado" | "credicontado" | "credito" | "convenio") => {
     setSaleType(newType);
     setInitialPayment(0);
+    setQuote(null);
+    setShowClientForm(false);
+    setShowAmortization(false);
+    setInicialMayor(false);
+    setInicialMayorValue(0);
+    setAdjustedBasePrice(0);
+    setOriginalMonthlyPayment(0);
+    setClientName("");
+    setClientId("");
+    setClientPhone("");
+    
     if (newType === "contado") {
       setInstallments(1);
       setSelectedList(1);
