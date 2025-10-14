@@ -209,13 +209,12 @@ const Cotizador = () => {
         remainingBalance = basePrice;
         totalPrice = basePrice;
         
-        // Calcular la cuota mensual usando el sistema francés
+        // Calcular la cuota mensual usando el sistema francés (valor exacto)
         const r = 0.0187;
         const n = installments;
         const fixedPaymentWithoutAval = basePrice * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
         const avalFijo = basePrice * 0.02;
-        const interesInicial = basePrice * r;
-        monthlyPayment = fixedPaymentWithoutAval + avalFijo;
+        monthlyPayment = fixedPaymentWithoutAval + avalFijo; // Valor exacto sin redondear
         break;
       
       case "convenio":
@@ -618,7 +617,7 @@ const Cotizador = () => {
               </div>
               <div className="flex justify-between py-3 bg-accent/10 px-4 rounded-lg">
                 <span className="font-bold text-lg">Cuota Mensual:</span>
-                <span className="font-bold text-xl text-accent">${Math.round(quote.monthlyPayment).toLocaleString()}</span>
+                <span className="font-bold text-xl text-accent">${Math.ceil(quote.monthlyPayment).toLocaleString()}</span>
               </div>
               
               {/* Tabla de Amortización - Solo para Crédito */}
@@ -648,10 +647,10 @@ const Cotizador = () => {
                             <tr key={row.month} className="border-b">
                               <td className="py-2 px-2">{row.month}</td>
                               <td className="text-right py-2 px-2">${Math.round(row.balance).toLocaleString()}</td>
-                              <td className="text-right py-2 px-2">${Math.round(row.principal).toLocaleString()}</td>
-                              <td className="text-right py-2 px-2">${Math.round(row.interest).toLocaleString()}</td>
-                              <td className="text-right py-2 px-2">${Math.round(row.aval).toLocaleString()}</td>
-                              <td className="text-right py-2 px-2 font-bold">${Math.round(row.payment).toLocaleString()}</td>
+                              <td className="text-right py-2 px-2">${row.principal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                              <td className="text-right py-2 px-2">${row.interest.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                              <td className="text-right py-2 px-2">${row.aval.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                              <td className="text-right py-2 px-2 font-bold">${row.payment.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
                             </tr>
                           ))}
                         </tbody>
