@@ -253,62 +253,53 @@ const Cotizador = () => {
           const nuevaCuotaSinRedondear = nuevoTotal / installments;
           const nuevaCuotaObjetivo = Math.ceil(nuevaCuotaSinRedondear / 1000) * 1000;
           
-          // 4. Calcular Nueva Base FS - encontrar la base que al amortizarla dé esta cuota
+          // 4. Calcular Nueva Base FS - encontrar la base que al amortizarla dé la cuota más cercana
           const r = 0.0187; // tasa de interés
           const n = installments; // número de cuotas
           
-          // Función auxiliar para calcular la cuota mensual redondeada dada una base
-          const calcularCuotaRedondeada = (base: number): number => {
+          // Función auxiliar para calcular la cuota mensual SIN redondear dada una base
+          const calcularCuotaSinRedondear = (base: number): number => {
             const fixedPaymentWithoutAval = base * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
             const avalFijo = base * 0.02;
-            const cuotaSinRedondear = fixedPaymentWithoutAval + avalFijo;
-            return Math.ceil(cuotaSinRedondear / 1000) * 1000;
+            return fixedPaymentWithoutAval + avalFijo;
           };
           
-          // Búsqueda binaria para encontrar la base correcta
-          let baseMin = 1000000; // Mínimo razonable
-          let baseMax = nuevoTotal * 2; // Máximo razonable
-          let nuevaBase = baseMin;
-          let iteraciones = 0;
-          const maxIteraciones = 200;
+          // Buscar la base cuya cuota sin redondear sea más cercana al objetivo
+          let mejorBase = 1000000;
+          let menorDiferencia = Infinity;
           
-          // Primera pasada: búsqueda binaria gruesa
-          while (baseMax - baseMin > 1000 && iteraciones < maxIteraciones) {
-            const baseMitad = Math.floor((baseMin + baseMax) / 2);
-            const cuotaCalculada = calcularCuotaRedondeada(baseMitad);
-            
-            if (cuotaCalculada < nuevaCuotaObjetivo) {
-              baseMin = baseMitad;
-            } else if (cuotaCalculada > nuevaCuotaObjetivo) {
-              baseMax = baseMitad;
-            } else {
-              nuevaBase = baseMitad;
-              break;
-            }
-            iteraciones++;
-          }
+          // Rango de búsqueda amplio
+          const baseMin = Math.max(1000000, nuevoTotal * 0.5);
+          const baseMax = nuevoTotal * 1.5;
           
-          // Segunda pasada: ajuste fino para encontrar la base más baja que dé la cuota objetivo
-          // Probar desde baseMin hasta baseMax en incrementos de 1000
-          let baseEncontrada = 0;
+          // Iterar en incrementos de 1000 para encontrar la mejor base
           for (let base = baseMin; base <= baseMax; base += 1000) {
-            const cuotaCalculada = calcularCuotaRedondeada(base);
-            if (cuotaCalculada >= nuevaCuotaObjetivo) {
-              baseEncontrada = base;
-              break;
+            const cuotaSinRedondear = calcularCuotaSinRedondear(base);
+            const cuotaRedondeada = Math.ceil(cuotaSinRedondear / 1000) * 1000;
+            
+            // Solo considerar bases cuya cuota redondeada sea >= cuota objetivo
+            if (cuotaRedondeada >= nuevaCuotaObjetivo) {
+              // Calcular qué tan cerca está la cuota sin redondear del objetivo
+              const diferencia = Math.abs(cuotaSinRedondear - nuevaCuotaObjetivo);
+              
+              if (diferencia < menorDiferencia) {
+                menorDiferencia = diferencia;
+                mejorBase = base;
+              }
+              
+              // Si la diferencia es muy pequeña, podemos parar
+              if (diferencia < 100) {
+                break;
+              }
             }
           }
           
-          // Si no encontramos nada, usar baseMin
-          if (baseEncontrada === 0) {
-            baseEncontrada = baseMin;
-          }
-          
-          // Redondear a múltiplos de 1000
-          nuevaBase = Math.round(baseEncontrada / 1000) * 1000;
+          // Usar la mejor base encontrada
+          const nuevaBase = mejorBase;
           
           // Verificar la cuota final con esta base
-          const cuotaFinalVerificacion = calcularCuotaRedondeada(nuevaBase);
+          const cuotaSinRedondearFinal = calcularCuotaSinRedondear(nuevaBase);
+          const cuotaFinalVerificacion = Math.ceil(cuotaSinRedondearFinal / 1000) * 1000;
           
           console.log("=== DEBUG RETANQUEO ===");
           console.log("Cuota actual:", currentMonthlyPayment);
@@ -316,7 +307,9 @@ const Cotizador = () => {
           console.log("Nuevo Total:", nuevoTotal);
           console.log("Cuota Objetivo:", nuevaCuotaObjetivo);
           console.log("Nueva Base FS:", nuevaBase);
+          console.log("Cuota sin redondear:", cuotaSinRedondearFinal);
           console.log("Cuota verificación:", cuotaFinalVerificacion);
+          console.log("Diferencia:", menorDiferencia);
           console.log("=====================");
           
           basePrice = nuevaBase;

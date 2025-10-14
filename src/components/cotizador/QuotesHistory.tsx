@@ -110,13 +110,13 @@ const QuotesHistory = ({ onClose }: QuotesHistoryProps) => {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between flex-shrink-0">
           <div>
-            <CardTitle className="flex items-center">
+            <CardTitle className="flex items-center text-lg">
               <FileText className="w-5 h-5 mr-2" />
               Historial de Cotizaciones
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Todas tus cotizaciones guardadas
             </CardDescription>
           </div>
@@ -124,8 +124,8 @@ const QuotesHistory = ({ onClose }: QuotesHistoryProps) => {
             <X className="w-5 h-5" />
           </Button>
         </CardHeader>
-        <CardContent className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full pr-4">
+        <CardContent className="flex-1 overflow-hidden p-4">
+          <ScrollArea className="h-[calc(90vh-140px)]">
             {loading ? (
               <div className="text-center py-8">Cargando cotizaciones...</div>
             ) : quotes.length === 0 ? (
@@ -133,40 +133,40 @@ const QuotesHistory = ({ onClose }: QuotesHistoryProps) => {
                 No hay cotizaciones guardadas
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 pr-4">
                 {quotes.map((quote) => (
                   <Card key={quote.id} className="border-l-4 border-l-primary">
-                    <CardContent className="pt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <CardContent className="p-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                         <div>
-                          <p className="text-sm text-muted-foreground">Fecha</p>
-                          <p className="font-medium">{formatDate(quote.created_at)}</p>
+                          <p className="text-xs text-muted-foreground">Fecha</p>
+                          <p className="font-medium text-sm">{formatDate(quote.created_at)}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Cliente</p>
-                          <p className="font-medium">{quote.client_name}</p>
+                          <p className="text-xs text-muted-foreground">Cliente</p>
+                          <p className="font-medium text-sm">{quote.client_name}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Celular</p>
-                          <p className="font-medium">{quote.client_phone}</p>
+                          <p className="text-xs text-muted-foreground">Celular</p>
+                          <p className="font-medium text-sm">{quote.client_phone}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Tipo de Venta</p>
-                          <p className="font-medium">{formatSaleType(quote.sale_type)}</p>
+                          <p className="text-xs text-muted-foreground">Tipo de Venta</p>
+                          <p className="font-medium text-sm">{formatSaleType(quote.sale_type)}</p>
                         </div>
                         {quote.products && (
                           <>
                             <div>
-                              <p className="text-sm text-muted-foreground">Marca</p>
-                              <p className="font-medium">{quote.products.brand}</p>
+                              <p className="text-xs text-muted-foreground">Marca</p>
+                              <p className="font-medium text-sm">{quote.products.brand}</p>
                             </div>
                             <div>
-                              <p className="text-sm text-muted-foreground">Línea</p>
-                              <p className="font-medium">{quote.products.line}</p>
+                              <p className="text-xs text-muted-foreground">Línea</p>
+                              <p className="font-medium text-sm">{quote.products.line}</p>
                             </div>
                             <div className="md:col-span-2">
-                              <p className="text-sm text-muted-foreground">Descripción</p>
-                              <p className="font-medium">{quote.products.description || "N/A"}</p>
+                              <p className="text-xs text-muted-foreground">Descripción</p>
+                              <p className="font-medium text-sm">{quote.products.description || "N/A"}</p>
                             </div>
                           </>
                         )}
