@@ -192,18 +192,21 @@ const Cotizador = () => {
       
       case "credito":
         // Para crédito usar BASE FINANSUEÑOS (credit_price) con amortización
-        basePrice = Number(priceData.credit_price || priceData.list_1_price);
+        const originalBasePrice = Number(priceData.credit_price || priceData.list_1_price);
+        basePrice = originalBasePrice;
         
-        // Si hay inicial mayor, ajustar el precio base
+        // Si hay inicial mayor, validar y ajustar el precio base
         if (inicialMayor && inicialMayorValue > 0) {
-          const minInitial = basePrice * 0.02; // El aval mínimo como referencia
-          const firstPayment = calculateAmortization(basePrice, installments)[0].payment;
+          const firstPayment = calculateAmortization(originalBasePrice, installments)[0].payment;
           
-          if (inicialMayorValue >= firstPayment) {
-            const excess = inicialMayorValue - firstPayment;
-            basePrice = basePrice - excess;
-            setAdjustedBasePrice(basePrice);
+          if (inicialMayorValue < firstPayment) {
+            toast.error(`La inicial mayor debe ser al menos $${Math.ceil(firstPayment / 1000) * 1000}.toLocaleString()`);
+            return;
           }
+          
+          const excess = inicialMayorValue - firstPayment;
+          basePrice = originalBasePrice - excess;
+          setAdjustedBasePrice(basePrice);
         }
         
         remainingBalance = basePrice;
@@ -229,13 +232,14 @@ const Cotizador = () => {
     setQuote({
       basePrice,
       totalPrice,
-      initialPayment,
+      initialPayment: saleType === "credito" && inicialMayor ? inicialMayorValue : initialPayment,
       remainingBalance,
       installments,
       monthlyPayment,
       saleType,
       priceListId: priceData.price_list_id,
-      productId: selectedProduct.id
+      productId: selectedProduct.id,
+      originalBasePrice: saleType === "credito" && inicialMayor ? Number(productPrices[0].credit_price || productPrices[0].list_1_price) : basePrice
     });
 
     // Para contado y convenio, mostrar directamente el formulario
@@ -526,20 +530,13 @@ const Cotizador = () => {
                                   type="number"
                                   value={inicialMayorValue}
                                   onChange={(e) => {
-                                    const value = Number(e.target.value);
-                                    const minValue = Math.round(quote.monthlyPayment);
-                                    if (value >= minValue) {
-                                      setInicialMayorValue(value);
-                                    } else {
-                                      toast.error(`El valor mínimo es $${minValue.toLocaleString()}`);
-                                    }
+                                    setInicialMayorValue(Number(e.target.value) || 0);
                                   }}
-                                  min={Math.round(quote.monthlyPayment)}
-                                  placeholder={`Mínimo: $${Math.round(quote.monthlyPayment).toLocaleString()}`}
+                                  placeholder={`Mínimo: $${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}`}
                                   className="mt-2"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                  Excedente: ${(inicialMayorValue - Math.round(quote.monthlyPayment)).toLocaleString()}
+                                  Primera cuota: ${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}
                                 </p>
                                 <Button 
                                   size="sm" 
@@ -585,15 +582,34 @@ const Cotizador = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between py-2 border-b">
-                <span className="font-medium">Precio Base:</span>
-                <span className="font-bold">${quote.basePrice.toLocaleString()}</span>
-              </div>
-              {saleType === "credicontado" && quote.initialPayment > 0 && (
-                <div className="flex justify-between py-2 border-b">
-                  <span className="font-medium">Cuota Inicial:</span>
-                  <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
-                </div>
+              {saleType === "credito" && inicialMayor && quote.originalBasePrice ? (
+                <>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Precio Base:</span>
+                    <span className="font-bold">${quote.originalBasePrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Cuota Inicial:</span>
+                    <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Precio Total:</span>
+                    <span className="font-bold text-primary">${quote.basePrice.toLocaleString()}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Precio Base:</span>
+                    <span className="font-bold">${quote.basePrice.toLocaleString()}</span>
+                  </div>
+                  {saleType === "credicontado" && quote.initialPayment > 0 && (
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="font-medium">Cuota Inicial:</span>
+                      <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
+                    </div>
+                  )}
+                </>
               )}
               {saleType === "credicontado" && (
                 <>
@@ -607,17 +623,19 @@ const Cotizador = () => {
                   </div>
                 </>
               )}
-              <div className="flex justify-between py-2 border-b">
-                <span className="font-medium">Precio Total:</span>
-                <span className="font-bold text-primary">${quote.totalPrice.toLocaleString()}</span>
-              </div>
+              {!(saleType === "credito" && inicialMayor && quote.originalBasePrice) && (
+                <div className="flex justify-between py-2 border-b">
+                  <span className="font-medium">Precio Total:</span>
+                  <span className="font-bold text-primary">${quote.totalPrice.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between py-2 border-b">
                 <span className="font-medium">Número de Cuotas:</span>
                 <span className="font-bold">{quote.installments}</span>
               </div>
               <div className="flex justify-between py-3 bg-accent/10 px-4 rounded-lg">
                 <span className="font-bold text-lg">Cuota Mensual:</span>
-                <span className="font-bold text-xl text-accent">${Math.ceil(quote.monthlyPayment).toLocaleString()}</span>
+                <span className="font-bold text-xl text-accent">${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}</span>
               </div>
               
               {/* Tabla de Amortización - Solo para Crédito */}
