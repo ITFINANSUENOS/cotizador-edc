@@ -226,20 +226,6 @@ const Cotizador = () => {
         const avalFijo_original = originalBasePrice * 0.02;
         const originalPayment = fixedPaymentWithoutAval_original + avalFijo_original;
         
-        // Si hay inicial mayor, validar y ajustar el precio base
-        if (inicialMayor && inicialMayorValue > 0 && !retanqueoEdC) {
-          const roundedOriginalPayment = Math.ceil(originalPayment / 1000) * 1000;
-          
-          if (inicialMayorValue < roundedOriginalPayment) {
-            toast.error(`La inicial mayor debe ser al menos $${roundedOriginalPayment.toLocaleString()}`);
-            return;
-          }
-          
-          const excess = inicialMayorValue - roundedOriginalPayment;
-          basePrice = originalBasePrice - excess;
-          setAdjustedBasePrice(basePrice);
-        }
-        
         // Si hay retanqueo EdC a FS
         if (retanqueoEdC && saldoArpesod > 0) {
           // 1. Calcular cuota mensual actual redondeada
@@ -272,7 +258,7 @@ const Cotizador = () => {
           const baseMin = Math.max(1000000, nuevoTotal * 0.5);
           const baseMax = nuevoTotal * 1.5;
           
-          // Iterar en incrementos de 1000 para encontrar la mejor base
+          // Iterar en incrementos de 1000 para encontrar la mejor base (solo miles, no centenas)
           for (let base = baseMin; base <= baseMax; base += 1000) {
             const cuotaSinRedondear = calcularCuotaSinRedondear(base);
             const cuotaRedondeada = Math.ceil(cuotaSinRedondear / 1000) * 1000;
@@ -294,8 +280,8 @@ const Cotizador = () => {
             }
           }
           
-          // Usar la mejor base encontrada
-          const nuevaBase = mejorBase;
+          // Redondear la base a miles completos (no centenas)
+          const nuevaBase = Math.round(mejorBase / 1000) * 1000;
           
           // Verificar la cuota final con esta base
           const cuotaSinRedondearFinal = calcularCuotaSinRedondear(nuevaBase);
@@ -312,29 +298,56 @@ const Cotizador = () => {
           console.log("Diferencia:", menorDiferencia);
           console.log("=====================");
           
+          // Actualizar todos los valores de forma inmediata
           basePrice = nuevaBase;
           setNuevaBaseFS(nuevaBase);
+          setAdjustedBasePrice(nuevaBase);
           monthlyPayment = cuotaFinalVerificacion;
           
           // Guardar el original payment para mostrar
           setOriginalMonthlyPayment(originalPayment);
+          remainingBalance = nuevaBase;
+          totalPrice = nuevaBase;
+        } else if (inicialMayor && inicialMayorValue > 0) {
+          // Si NO hay retanqueo pero SÍ hay inicial mayor
+          const roundedOriginalPayment = Math.ceil(originalPayment / 1000) * 1000;
+          
+          if (inicialMayorValue < roundedOriginalPayment) {
+            toast.error(`La inicial mayor debe ser al menos $${roundedOriginalPayment.toLocaleString()}`);
+            return;
+          }
+          
+          const excess = inicialMayorValue - roundedOriginalPayment;
+          basePrice = originalBasePrice - excess;
+          setAdjustedBasePrice(basePrice);
+          
+          // Guardar la cuota original para mostrarla en "Inicial Mayor"
+          setOriginalMonthlyPayment(originalPayment);
+          
           remainingBalance = basePrice;
           totalPrice = basePrice;
-          break;
+          
+          // Calcular la cuota mensual usando el sistema francés (valor exacto)
+          const r = 0.0187;
+          const n = installments;
+          const fixedPaymentWithoutAval = basePrice * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+          const avalFijo = basePrice * 0.02;
+          monthlyPayment = fixedPaymentWithoutAval + avalFijo; // Valor exacto sin redondear
+        } else {
+          // Si NO hay retanqueo NI inicial mayor, cálculo normal
+          // Guardar la cuota original
+          setOriginalMonthlyPayment(originalPayment);
+          
+          remainingBalance = basePrice;
+          totalPrice = basePrice;
+          
+          // Calcular la cuota mensual usando el sistema francés (valor exacto)
+          const r = 0.0187;
+          const n = installments;
+          const fixedPaymentWithoutAval = basePrice * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+          const avalFijo = basePrice * 0.02;
+          monthlyPayment = fixedPaymentWithoutAval + avalFijo; // Valor exacto sin redondear
         }
-        
-        // Guardar la cuota original para mostrarla en "Inicial Mayor"
-        setOriginalMonthlyPayment(originalPayment);
-        
-        remainingBalance = basePrice;
-        totalPrice = basePrice;
-        
-        // Calcular la cuota mensual usando el sistema francés (valor exacto)
-        const r = 0.0187;
-        const n = installments;
-        const fixedPaymentWithoutAval = basePrice * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-        const avalFijo = basePrice * 0.02;
-        monthlyPayment = fixedPaymentWithoutAval + avalFijo; // Valor exacto sin redondear
         break;
       
       case "convenio":
