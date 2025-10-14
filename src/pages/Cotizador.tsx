@@ -605,7 +605,7 @@ const Cotizador = () => {
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Precio Total:</span>
-                    <span className="font-bold text-primary">${(quote.originalBasePrice - Math.max(0, quote.initialPayment - (Math.ceil(quote.monthlyPayment / 1000) * 1000))).toLocaleString()}</span>
+                    <span className="font-bold text-primary">${(quote.originalBasePrice - Math.max(0, quote.initialPayment - (Math.ceil(originalMonthlyPayment / 1000) * 1000))).toLocaleString()}</span>
                   </div>
                 </>
               ) : (
