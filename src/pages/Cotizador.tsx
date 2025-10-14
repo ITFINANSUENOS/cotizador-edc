@@ -245,19 +245,46 @@ const Cotizador = () => {
           const pagoTotal = currentMonthlyPayment * installments;
           const nuevoTotal = pagoTotal + saldoArpesod;
           
-          // Nueva cuota mensual = NUEVO TOTAL / Número de Cuotas
-          const nuevaCuotaMensual = nuevoTotal / installments;
+          // Nueva cuota mensual objetivo = NUEVO TOTAL / Número de Cuotas
+          const nuevaCuotaObjetivo = nuevoTotal / installments;
           
-          // Calcular Nueva Base FS (trabajar hacia atrás desde la nueva cuota)
-          // Fórmula inversa: Base = Cuota / ((r(1+r)^n / ((1+r)^n - 1)) + 0.02)
+          // Calcular Nueva Base FS iterativamente para que la cuota no supere el objetivo
+          // Usando búsqueda binaria para encontrar la base correcta
           const r = 0.0187;
           const n = installments;
-          const factorAmortizacion = (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-          const nuevaBase = nuevaCuotaMensual / (factorAmortizacion + 0.02);
+          
+          let baseMin = 0;
+          let baseMax = nuevoTotal * 2; // Límite superior generoso
+          let nuevaBase = nuevoTotal;
+          let iteraciones = 0;
+          
+          // Búsqueda binaria para encontrar la base que da la cuota correcta
+          while (baseMax - baseMin > 1 && iteraciones < 50) {
+            const basePrueba = (baseMin + baseMax) / 2;
+            
+            // Calcular cuota con esta base de prueba
+            const fixedPaymentWithoutAval = basePrueba * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+            const avalFijo = basePrueba * 0.02;
+            const cuotaCalculada = fixedPaymentWithoutAval + avalFijo;
+            
+            if (cuotaCalculada > nuevaCuotaObjetivo) {
+              // La cuota es muy alta, reducir la base
+              baseMax = basePrueba;
+            } else {
+              // La cuota es menor o igual, podemos intentar con una base mayor
+              baseMin = basePrueba;
+              nuevaBase = basePrueba;
+            }
+            
+            iteraciones++;
+          }
+          
+          // Redondear la nueva base a múltiplos de 1000
+          nuevaBase = Math.round(nuevaBase / 1000) * 1000;
           
           basePrice = nuevaBase;
           setNuevaBaseFS(nuevaBase);
-          monthlyPayment = nuevaCuotaMensual;
+          monthlyPayment = nuevaCuotaObjetivo;
           
           // Guardar el original payment para mostrar
           setOriginalMonthlyPayment(originalPayment);
@@ -740,20 +767,22 @@ const Cotizador = () => {
                   </div>
                 </>
               )}
-              {!(saleType === "credito" && inicialMayor && quote.originalBasePrice) && (
-                <div className="flex justify-between py-2 border-b">
-                  <span className="font-medium">Precio Total:</span>
-                  <span className="font-bold text-primary">${quote.totalPrice.toLocaleString()}</span>
-                </div>
+              {!(saleType === "credito" && (inicialMayor || retanqueoEdC) && quote.originalBasePrice) && (
+                <>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Precio Total:</span>
+                    <span className="font-bold text-primary">${quote.totalPrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Número de Cuotas:</span>
+                    <span className="font-bold">{quote.installments}</span>
+                  </div>
+                  <div className="flex justify-between py-3 bg-accent/10 px-4 rounded-lg">
+                    <span className="font-bold text-lg">Cuota Mensual:</span>
+                    <span className="font-bold text-xl text-accent">${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}</span>
+                  </div>
+                </>
               )}
-              <div className="flex justify-between py-2 border-b">
-                <span className="font-medium">Número de Cuotas:</span>
-                <span className="font-bold">{quote.installments}</span>
-              </div>
-              <div className="flex justify-between py-3 bg-accent/10 px-4 rounded-lg">
-                <span className="font-bold text-lg">Cuota Mensual:</span>
-                <span className="font-bold text-xl text-accent">${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}</span>
-              </div>
               
               {/* Tabla de Amortización - Solo para Crédito sin Retanqueo */}
               {saleType === "credito" && !retanqueoEdC && (
