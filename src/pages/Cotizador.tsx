@@ -536,7 +536,7 @@ const Cotizador = () => {
                                   className="mt-2"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                  Primera cuota: ${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}
+                                  Excedente: ${Math.max(0, inicialMayorValue - (Math.ceil(quote.monthlyPayment / 1000) * 1000)).toLocaleString()}
                                 </p>
                                 <Button 
                                   size="sm" 
@@ -594,7 +594,7 @@ const Cotizador = () => {
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Precio Total:</span>
-                    <span className="font-bold text-primary">${quote.basePrice.toLocaleString()}</span>
+                    <span className="font-bold text-primary">${(quote.originalBasePrice - Math.max(0, quote.initialPayment - (Math.ceil(quote.monthlyPayment / 1000) * 1000))).toLocaleString()}</span>
                   </div>
                 </>
               ) : (
