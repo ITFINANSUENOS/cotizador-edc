@@ -242,59 +242,86 @@ const Cotizador = () => {
         
         // Si hay retanqueo EdC a FS
         if (retanqueoEdC && saldoArpesod > 0) {
-          // Calcular cuota mensual actual
+          // 1. Calcular cuota mensual actual redondeada
           const currentMonthlyPayment = Math.ceil(originalPayment / 1000) * 1000;
           
-          // Calcular NUEVO TOTAL: (Cuota Mensual × Número de Cuotas) + Saldo Arpesod
+          // 2. Calcular NUEVO TOTAL: (Cuota Mensual × Número de Cuotas) + Saldo Arpesod
           const pagoTotal = currentMonthlyPayment * installments;
           const nuevoTotal = pagoTotal + saldoArpesod;
           
-          // Nueva cuota mensual objetivo = NUEVO TOTAL / Número de Cuotas
-          const nuevaCuotaObjetivo = Math.ceil((nuevoTotal / installments) / 1000) * 1000;
+          // 3. Nueva cuota mensual objetivo = NUEVO TOTAL / Número de Cuotas (SIN redondear aún)
+          const nuevaCuotaSinRedondear = nuevoTotal / installments;
+          const nuevaCuotaObjetivo = Math.ceil(nuevaCuotaSinRedondear / 1000) * 1000;
           
-          // Calcular Nueva Base FS usando búsqueda binaria inversa
-          // Necesitamos encontrar la base que al amortizarla dé la cuota objetivo
-          const r = 0.0187;
-          const n = installments;
+          // 4. Calcular Nueva Base FS - encontrar la base que al amortizarla dé esta cuota
+          const r = 0.0187; // tasa de interés
+          const n = installments; // número de cuotas
           
-          let baseMin = 0;
-          let baseMax = nuevoTotal * 3;
-          let nuevaBase = 0;
-          let mejorBase = 0;
-          let menorDiferencia = Infinity;
+          // Función auxiliar para calcular la cuota mensual redondeada dada una base
+          const calcularCuotaRedondeada = (base: number): number => {
+            const fixedPaymentWithoutAval = base * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+            const avalFijo = base * 0.02;
+            const cuotaSinRedondear = fixedPaymentWithoutAval + avalFijo;
+            return Math.ceil(cuotaSinRedondear / 1000) * 1000;
+          };
           
-          // Búsqueda binaria más precisa
-          for (let i = 0; i < 100; i++) {
-            const basePrueba = (baseMin + baseMax) / 2;
-            
-            // Calcular cuota con esta base de prueba usando la misma fórmula de amortización
-            const fixedPaymentWithoutAval = basePrueba * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-            const avalFijo = basePrueba * 0.02;
-            const cuotaCalculada = Math.ceil((fixedPaymentWithoutAval + avalFijo) / 1000) * 1000;
-            
-            const diferencia = Math.abs(cuotaCalculada - nuevaCuotaObjetivo);
-            
-            if (diferencia < menorDiferencia) {
-              menorDiferencia = diferencia;
-              mejorBase = basePrueba;
-            }
+          // Búsqueda binaria para encontrar la base correcta
+          let baseMin = 1000000; // Mínimo razonable
+          let baseMax = nuevoTotal * 2; // Máximo razonable
+          let nuevaBase = baseMin;
+          let iteraciones = 0;
+          const maxIteraciones = 200;
+          
+          // Primera pasada: búsqueda binaria gruesa
+          while (baseMax - baseMin > 1000 && iteraciones < maxIteraciones) {
+            const baseMitad = Math.floor((baseMin + baseMax) / 2);
+            const cuotaCalculada = calcularCuotaRedondeada(baseMitad);
             
             if (cuotaCalculada < nuevaCuotaObjetivo) {
-              baseMin = basePrueba;
+              baseMin = baseMitad;
             } else if (cuotaCalculada > nuevaCuotaObjetivo) {
-              baseMax = basePrueba;
+              baseMax = baseMitad;
             } else {
-              mejorBase = basePrueba;
+              nuevaBase = baseMitad;
+              break;
+            }
+            iteraciones++;
+          }
+          
+          // Segunda pasada: ajuste fino para encontrar la base más baja que dé la cuota objetivo
+          // Probar desde baseMin hasta baseMax en incrementos de 1000
+          let baseEncontrada = 0;
+          for (let base = baseMin; base <= baseMax; base += 1000) {
+            const cuotaCalculada = calcularCuotaRedondeada(base);
+            if (cuotaCalculada >= nuevaCuotaObjetivo) {
+              baseEncontrada = base;
               break;
             }
           }
           
-          // Redondear la nueva base a múltiplos de 1000
-          nuevaBase = Math.round(mejorBase / 1000) * 1000;
+          // Si no encontramos nada, usar baseMin
+          if (baseEncontrada === 0) {
+            baseEncontrada = baseMin;
+          }
+          
+          // Redondear a múltiplos de 1000
+          nuevaBase = Math.round(baseEncontrada / 1000) * 1000;
+          
+          // Verificar la cuota final con esta base
+          const cuotaFinalVerificacion = calcularCuotaRedondeada(nuevaBase);
+          
+          console.log("=== DEBUG RETANQUEO ===");
+          console.log("Cuota actual:", currentMonthlyPayment);
+          console.log("Saldo Arpesod:", saldoArpesod);
+          console.log("Nuevo Total:", nuevoTotal);
+          console.log("Cuota Objetivo:", nuevaCuotaObjetivo);
+          console.log("Nueva Base FS:", nuevaBase);
+          console.log("Cuota verificación:", cuotaFinalVerificacion);
+          console.log("=====================");
           
           basePrice = nuevaBase;
           setNuevaBaseFS(nuevaBase);
-          monthlyPayment = nuevaCuotaObjetivo;
+          monthlyPayment = cuotaFinalVerificacion;
           
           // Guardar el original payment para mostrar
           setOriginalMonthlyPayment(originalPayment);
