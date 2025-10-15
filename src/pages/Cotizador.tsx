@@ -674,6 +674,7 @@ const Cotizador = () => {
                         const val = e.target.value;
                         setInstallments(val === '' ? 1 : Number(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                     />
                   </div>
                   <div className="space-y-2">

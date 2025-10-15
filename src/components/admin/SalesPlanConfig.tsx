@@ -267,6 +267,7 @@ const SalesPlanConfig = () => {
                           max="100"
                           value={percentages[installment] || 0}
                           onChange={(e) => handlePercentageChange(installment, e.target.value)}
+                          onFocus={(e) => e.target.select()}
                           className="w-24"
                         />
                         <span className="text-sm text-muted-foreground">% adicional</span>
@@ -306,6 +307,7 @@ const SalesPlanConfig = () => {
                         const val = e.target.value;
                         setMonthlyInterestRate(val === '' ? 0 : parseFloat(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                     />
                   </div>
 
@@ -320,6 +322,7 @@ const SalesPlanConfig = () => {
                         const val = e.target.value;
                         setRetanqueoInterestRate(val === '' ? 0 : parseFloat(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                     />
                   </div>
 
@@ -334,6 +337,7 @@ const SalesPlanConfig = () => {
                         const val = e.target.value;
                         setAvalCobrador(val === '' ? 0 : parseFloat(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                     />
                   </div>
                 </div>
@@ -394,6 +398,7 @@ const SalesPlanConfig = () => {
                         const val = e.target.value;
                         setTestCapital(val === '' ? 0 : parseFloat(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                     />
                   </div>
 
@@ -407,6 +412,7 @@ const SalesPlanConfig = () => {
                         const val = e.target.value;
                         setTestTerm(val === '' ? 0 : parseInt(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                     />
                   </div>
                 </div>
@@ -483,6 +489,7 @@ const SalesPlanConfig = () => {
                         const val = e.target.value;
                         setNewModelMonthlyRate(val === '' ? 0 : parseFloat(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                       className="h-9 text-sm"
                     />
                   </div>
@@ -498,6 +505,7 @@ const SalesPlanConfig = () => {
                         const val = e.target.value;
                         setNewModelRetanqueoRate(val === '' ? 0 : parseFloat(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                       className="h-9 text-sm"
                     />
                   </div>
@@ -523,6 +531,7 @@ const SalesPlanConfig = () => {
                         const val = e.target.value;
                         setNewModelTecAdm(val === '' ? 0 : parseFloat(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                       className="h-9 text-sm"
                     />
                   </div>
@@ -549,6 +558,7 @@ const SalesPlanConfig = () => {
                         const val = e.target.value;
                         setNewModelSeguro1(val === '' ? 0 : parseFloat(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                       className="h-9 text-sm"
                     />
                   </div>
@@ -575,6 +585,7 @@ const SalesPlanConfig = () => {
                         const val = e.target.value;
                         setNewModelSeguro2Formula(val === '' ? 0 : parseFloat(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                       className="h-9 text-sm"
                     />
                   </div>
@@ -593,6 +604,7 @@ const SalesPlanConfig = () => {
                       const val = e.target.value;
                       setNewModelBasePrice(val === '' ? 0 : parseFloat(val));
                     }}
+                    onFocus={(e) => e.target.select()}
                     placeholder="Ingrese el precio base"
                   />
                 </div>
@@ -658,6 +670,7 @@ const SalesPlanConfig = () => {
                                         }
                                       });
                                     }}
+                                    onFocus={(e) => e.target.select()}
                                     className="text-right"
                                   />
                                 </TableCell>
@@ -678,6 +691,7 @@ const SalesPlanConfig = () => {
                                         }
                                       });
                                     }}
+                                    onFocus={(e) => e.target.select()}
                                     className="text-right"
                                   />
                                 </TableCell>
@@ -727,6 +741,7 @@ const SalesPlanConfig = () => {
                                       newRanges[index].minPercent = parseFloat(e.target.value) || 0;
                                       setDiscountRanges(newRanges);
                                     }}
+                                    onFocus={(e) => e.target.select()}
                                   />
                                 </TableCell>
                                 <TableCell>
@@ -741,6 +756,7 @@ const SalesPlanConfig = () => {
                                       newRanges[index].maxPercent = parseFloat(e.target.value) || 0;
                                       setDiscountRanges(newRanges);
                                     }}
+                                    onFocus={(e) => e.target.select()}
                                   />
                                 </TableCell>
                                 <TableCell>
@@ -755,6 +771,7 @@ const SalesPlanConfig = () => {
                                       newRanges[index].discount = parseFloat(e.target.value) || 0;
                                       setDiscountRanges(newRanges);
                                     }}
+                                    onFocus={(e) => e.target.select()}
                                     className="text-right"
                                   />
                                 </TableCell>
@@ -860,6 +877,7 @@ const SalesPlanConfig = () => {
                         min="0"
                         value={newModelAdditionalInitial}
                         onChange={(e) => setNewModelAdditionalInitial(parseFloat(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
                         placeholder="0"
                       />
                     </div>
