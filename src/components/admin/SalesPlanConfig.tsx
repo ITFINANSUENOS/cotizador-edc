@@ -8,10 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Save, Calculator, Settings, Info } from "lucide-react";
+import { Save, Calculator, Settings, Info, Download } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import html2canvas from "html2canvas";
 
 interface SalesPlanConfig {
   id: string;
@@ -846,10 +847,10 @@ const SalesPlanConfig = () => {
                     Calcular Amortización
                   </Button>
 
-                  {newModelAmortizationTable.length > 0 && (
+                   {newModelAmortizationTable.length > 0 && (
                     <div className="space-y-4">
                       <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                        <span className="font-semibold">Cuota Inicial:</span>
+                        <span className="font-semibold">Cuota Inicial: ({clientTypeConfig[newModelClientType].ci}%)</span>
                         <span className="text-lg font-bold text-primary">
                           ${(newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                         </span>
@@ -858,23 +859,23 @@ const SalesPlanConfig = () => {
                       <div className="flex justify-between items-center p-3 bg-accent/10 rounded-lg">
                         <span className="font-semibold">Cuota Mensual:</span>
                         <span className="text-lg font-bold text-accent">
-                          ${newModelAmortizationTable[0]?.payment.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                          ${Math.ceil(newModelAmortizationTable[0]?.payment / 1000) * 1000}
                         </span>
                       </div>
 
-                      <div className="rounded-md border overflow-auto max-h-96">
+                      <div id="amortization-table-container" className="rounded-md border overflow-auto max-h-96 bg-background">
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="text-xs whitespace-nowrap">Mes</TableHead>
-                              <TableHead className="text-xs text-right whitespace-nowrap">Saldo</TableHead>
-                              <TableHead className="text-xs text-right whitespace-nowrap">Capital</TableHead>
-                              <TableHead className="text-xs text-right whitespace-nowrap">Interés</TableHead>
-                              <TableHead className="text-xs text-right whitespace-nowrap">Tec/Adm</TableHead>
-                              <TableHead className="text-xs text-right whitespace-nowrap">FGA</TableHead>
-                              <TableHead className="text-xs text-right whitespace-nowrap">Seg. 1</TableHead>
-                              <TableHead className="text-xs text-right whitespace-nowrap">Seg. 2</TableHead>
-                              <TableHead className="text-xs text-right whitespace-nowrap">Cuota</TableHead>
+                              <TableHead className="text-xs font-bold whitespace-nowrap">Mes</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Saldo</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Capital</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Interés</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Tec/Adm</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">FGA</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Seg. 1</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Seg. 2</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Cuota</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -907,9 +908,59 @@ const SalesPlanConfig = () => {
                                 </TableCell>
                               </TableRow>
                             ))}
+                            <TableRow className="bg-muted/50 font-bold">
+                              <TableCell className="text-xs font-bold" colSpan={3}>TOTAL</TableCell>
+                              <TableCell className="text-xs text-right font-bold">
+                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.interest, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold">
+                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.tecAdm, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold">
+                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.fga, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold">
+                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.seguro1, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold">
+                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.seguro2, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold">
+                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.payment, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                            </TableRow>
                           </TableBody>
                         </Table>
                       </div>
+                      
+                      <Button 
+                        onClick={async () => {
+                          const element = document.getElementById('amortization-table-container');
+                          if (!element) return;
+                          
+                          try {
+                            const canvas = await html2canvas(element, {
+                              backgroundColor: '#ffffff',
+                              scale: 2
+                            });
+                            
+                            const link = document.createElement('a');
+                            link.download = `amortizacion-${new Date().toISOString().split('T')[0]}.png`;
+                            link.href = canvas.toDataURL();
+                            link.click();
+                            
+                            toast.success("Tabla descargada exitosamente");
+                          } catch (error) {
+                            console.error('Error al descargar:', error);
+                            toast.error("Error al descargar la tabla");
+                          }
+                        }}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Descargar Tabla como Imagen
+                      </Button>
                     </div>
                   )}
                 </div>
