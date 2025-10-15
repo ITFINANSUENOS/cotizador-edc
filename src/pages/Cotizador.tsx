@@ -1062,15 +1062,10 @@ const Cotizador = () => {
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Cuota Inicial Total:</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
-                      <span className="text-xs text-blue-400/70">
-                        ({((quote.initialPayment / quote.originalBasePrice) * 100).toFixed(1)}%)
-                      </span>
-                    </div>
+                    <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Descuento precio base:</span>
+                    <span className="font-medium">Descuento:</span>
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-muted-foreground">
                         ({((Math.max(0, quote.initialPayment - (Math.ceil(originalMonthlyPayment / 1000) * 1000)) / quote.originalBasePrice) * 100).toFixed(1)}%)
@@ -1081,8 +1076,12 @@ const Cotizador = () => {
                     </div>
                   </div>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Precio Total:</span>
-                    <span className="font-bold text-primary">${(quote.originalBasePrice - Math.max(0, quote.initialPayment - (Math.ceil(originalMonthlyPayment / 1000) * 1000))).toLocaleString()}</span>
+                    <span className="font-medium">Número de Cuotas:</span>
+                    <span className="font-bold">{quote.installments}</span>
+                  </div>
+                  <div className="flex justify-between py-3 bg-accent/10 px-4 rounded-lg">
+                    <span className="font-bold text-lg">Cuota Mensual:</span>
+                    <span className="font-bold text-xl text-accent">${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}</span>
                   </div>
                 </>
               ) : (

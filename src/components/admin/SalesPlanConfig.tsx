@@ -844,7 +844,7 @@ const SalesPlanConfig = () => {
                 <div className="space-y-6 p-4 border rounded-lg bg-muted/30">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label>Cuota Inicial (Mínima):</Label>
+                      <Label>Cuota Inicial ({clientTypeConfig[newModelClientType].ci}%):</Label>
                       <div className="p-3 bg-primary/10 rounded-lg">
                         <span className="text-lg font-bold text-primary">
                           ${(newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
