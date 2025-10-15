@@ -484,7 +484,17 @@ const SalesPlanConfig = () => {
                   </div>
 
                   <div className="grid gap-1.5">
-                    <Label htmlFor="newModelTecAdm" className="text-xs">Tec/Adm (%)</Label>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="newModelTecAdm" className="text-xs">Tec/Adm (%)</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">Aplicado sobre el desembolsado dividido en todas las cuotas</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="newModelTecAdm"
                       type="number"
