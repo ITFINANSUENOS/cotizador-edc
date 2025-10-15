@@ -264,7 +264,10 @@ const SalesPlanConfig = () => {
                       type="number"
                       step="0.1"
                       value={monthlyInterestRate}
-                      onChange={(e) => setMonthlyInterestRate(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setMonthlyInterestRate(val === '' ? 0 : parseFloat(val));
+                      }}
                     />
                   </div>
 
@@ -275,7 +278,10 @@ const SalesPlanConfig = () => {
                       type="number"
                       step="0.01"
                       value={retanqueoInterestRate}
-                      onChange={(e) => setRetanqueoInterestRate(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setRetanqueoInterestRate(val === '' ? 0 : parseFloat(val));
+                      }}
                     />
                   </div>
 
@@ -286,7 +292,10 @@ const SalesPlanConfig = () => {
                       type="number"
                       step="0.1"
                       value={avalCobrador}
-                      onChange={(e) => setAvalCobrador(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAvalCobrador(val === '' ? 0 : parseFloat(val));
+                      }}
                     />
                   </div>
                 </div>
@@ -343,7 +352,10 @@ const SalesPlanConfig = () => {
                       id="testCapital"
                       type="number"
                       value={testCapital}
-                      onChange={(e) => setTestCapital(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTestCapital(val === '' ? 0 : parseFloat(val));
+                      }}
                     />
                   </div>
 
@@ -353,7 +365,10 @@ const SalesPlanConfig = () => {
                       id="testTerm"
                       type="number"
                       value={testTerm}
-                      onChange={(e) => setTestTerm(parseInt(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTestTerm(val === '' ? 0 : parseInt(val));
+                      }}
                     />
                   </div>
                 </div>
@@ -426,7 +441,10 @@ const SalesPlanConfig = () => {
                     step="1000"
                     min="0"
                     value={newModelBasePrice}
-                    onChange={(e) => setNewModelBasePrice(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNewModelBasePrice(val === '' ? 0 : parseFloat(val));
+                    }}
                     placeholder="Ingrese el precio base"
                   />
                 </div>

@@ -670,7 +670,10 @@ const Cotizador = () => {
                       type="number"
                       min={1}
                       value={installments}
-                      onChange={(e) => setInstallments(Number(e.target.value))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setInstallments(val === '' ? 1 : Number(val));
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
@@ -679,7 +682,10 @@ const Cotizador = () => {
                       type="number"
                       min={0}
                       value={initialPayment || ""}
-                      onChange={(e) => setInitialPayment(Number(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setInitialPayment(val === '' ? 0 : Number(val));
+                      }}
                       placeholder="0"
                     />
                   </div>
@@ -768,7 +774,8 @@ const Cotizador = () => {
                                   type="number"
                                   value={inicialMayorValue}
                                   onChange={(e) => {
-                                    setInicialMayorValue(Number(e.target.value) || 0);
+                                    const val = e.target.value;
+                                    setInicialMayorValue(val === '' ? 0 : Number(val));
                                   }}
                                   placeholder={`Mínimo: $${(Math.ceil(originalMonthlyPayment / 1000) * 1000).toLocaleString()}`}
                                   className="mt-2"
@@ -810,7 +817,8 @@ const Cotizador = () => {
                                     type="number"
                                     value={saldoFinansuenos || ""}
                                     onChange={(e) => {
-                                      setSaldoFinansuenos(Number(e.target.value) || 0);
+                                      const val = e.target.value;
+                                      setSaldoFinansuenos(val === '' ? 0 : Number(val));
                                     }}
                                     placeholder="Saldo FinanSueños"
                                     className="mt-2"
@@ -861,7 +869,8 @@ const Cotizador = () => {
                                   type="number"
                                   value={saldoArpesod || ""}
                                   onChange={(e) => {
-                                    setSaldoArpesod(Number(e.target.value) || 0);
+                                    const val = e.target.value;
+                                    setSaldoArpesod(val === '' ? 0 : Number(val));
                                   }}
                                   placeholder="Saldo Arpesod"
                                   className="mt-2"
