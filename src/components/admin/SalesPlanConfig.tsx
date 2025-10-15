@@ -86,9 +86,13 @@ const SalesPlanConfig = () => {
       // Load Crédito config
       if (configMap.credito) {
         const config = configMap.credito.config;
-        setMonthlyInterestRate(config.monthly_interest_rate || 2.5);
+        const creditoMonthlyRate = config.monthly_interest_rate || 2.5;
+        setMonthlyInterestRate(creditoMonthlyRate);
         setRetanqueoInterestRate(config.retanqueo_interest_rate || 1.60);
         setAvalCobrador(config.aval_cobrador_percentage || 1.5);
+        // Sincronizar con el nuevo modelo
+        setNewModelMonthlyRate(creditoMonthlyRate);
+        setNewModelRetanqueoRate(config.retanqueo_interest_rate || 1.60);
       }
     }
     setLoading(false);
@@ -202,6 +206,9 @@ const SalesPlanConfig = () => {
       console.error(error);
     } else {
       toast.success("Configuración de Crédito guardada");
+      // Sincronizar tasas con el nuevo modelo
+      setNewModelMonthlyRate(monthlyInterestRate);
+      setNewModelRetanqueoRate(retanqueoInterestRate);
       loadConfigs();
     }
   };
