@@ -686,6 +686,7 @@ const Cotizador = () => {
                         const val = e.target.value;
                         setInitialPayment(val === '' ? 0 : Number(val));
                       }}
+                      onFocus={(e) => e.target.select()}
                       placeholder="0"
                     />
                   </div>
@@ -766,7 +767,8 @@ const Cotizador = () => {
                           />
                           <div className="flex-1 space-y-2">
                             <Label htmlFor="inicial-mayor" className="text-sm font-medium cursor-pointer">
-                              Inicial Mayor
+                              <span className="hidden sm:inline">Cuota Inicial Adicional</span>
+                              <span className="sm:hidden">Inicial Adicional</span>
                             </Label>
                             {inicialMayor && (
                               <div className="space-y-1">
@@ -777,6 +779,7 @@ const Cotizador = () => {
                                     const val = e.target.value;
                                     setInicialMayorValue(val === '' ? 0 : Number(val));
                                   }}
+                                  onFocus={(e) => e.target.select()}
                                   placeholder={`Mínimo: $${(Math.ceil(originalMonthlyPayment / 1000) * 1000).toLocaleString()}`}
                                   className="mt-2"
                                 />
@@ -820,6 +823,7 @@ const Cotizador = () => {
                                       const val = e.target.value;
                                       setSaldoFinansuenos(val === '' ? 0 : Number(val));
                                     }}
+                                    onFocus={(e) => e.target.select()}
                                     placeholder="Saldo FinanSueños"
                                     className="mt-2"
                                   />
@@ -872,6 +876,7 @@ const Cotizador = () => {
                                     const val = e.target.value;
                                     setSaldoArpesod(val === '' ? 0 : Number(val));
                                   }}
+                                  onFocus={(e) => e.target.select()}
                                   placeholder="Saldo Arpesod"
                                   className="mt-2"
                                 />
@@ -1056,8 +1061,24 @@ const Cotizador = () => {
                     <span className="font-bold">${quote.originalBasePrice.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Cuota Inicial:</span>
-                    <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
+                    <span className="font-medium">Cuota Inicial Total:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
+                      <span className="text-xs text-blue-400/70">
+                        ({((quote.initialPayment / quote.originalBasePrice) * 100).toFixed(1)}%)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Descuento precio base:</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-muted-foreground">
+                        ({((Math.max(0, quote.initialPayment - (Math.ceil(originalMonthlyPayment / 1000) * 1000)) / quote.originalBasePrice) * 100).toFixed(1)}%)
+                      </span>
+                      <span className="font-bold text-green-600">
+                        ${Math.max(0, quote.initialPayment - (Math.ceil(originalMonthlyPayment / 1000) * 1000)).toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Precio Total:</span>
