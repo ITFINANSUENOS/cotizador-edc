@@ -39,7 +39,7 @@ const SalesPlanConfig = () => {
   
   // Nuevo Modelo Crédito
   const [newModelBasePrice, setNewModelBasePrice] = useState(0);
-  const [newModelTermType, setNewModelTermType] = useState<'corto' | 'largo'>('corto');
+  const [newModelTermType, setNewModelTermType] = useState<'corto' | 'largo' | ''>('');
   const [newModelInstallments, setNewModelInstallments] = useState<number>(3);
   const [newModelClientType, setNewModelClientType] = useState<string>('AAA');
   const [newModelMonthlyRate, setNewModelMonthlyRate] = useState(2.5);
@@ -47,6 +47,8 @@ const SalesPlanConfig = () => {
   const [newModelTecAdm, setNewModelTecAdm] = useState(5);
   const [newModelSeguro1, setNewModelSeguro1] = useState(4);
   const [newModelSeguro2Formula, setNewModelSeguro2Formula] = useState(0.17);
+  const [newModelRateType, setNewModelRateType] = useState<'mensual' | 'retanqueo'>('mensual');
+  const [newModelAmortizationTable, setNewModelAmortizationTable] = useState<any[]>([]);
   const [clientTypeConfig, setClientTypeConfig] = useState<Record<string, { ci: number; fga: number }>>({
     'AAA': { ci: 0, fga: 0.25 },
     'AA': { ci: 0, fga: 0.25 },
@@ -693,6 +695,7 @@ const SalesPlanConfig = () => {
                         onChange={(e) => {
                           setNewModelTermType(e.target.value as 'corto' | 'largo');
                           setNewModelInstallments(e.target.value === 'corto' ? 3 : 9);
+                          setNewModelAmortizationTable([]);
                         }}
                         className="w-4 h-4"
                       />
@@ -716,36 +719,200 @@ const SalesPlanConfig = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="newModelInstallments">No. Cuotas</Label>
-                  <Select 
-                    value={newModelInstallments.toString()} 
-                    onValueChange={(value) => setNewModelInstallments(parseInt(value))}
-                  >
-                    <SelectTrigger id="newModelInstallments">
-                      <SelectValue placeholder="Seleccione número de cuotas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {newModelTermType === 'corto' ? (
-                        <>
-                          <SelectItem value="3">3</SelectItem>
-                          <SelectItem value="4">4</SelectItem>
-                          <SelectItem value="5">5</SelectItem>
-                          <SelectItem value="6">6</SelectItem>
-                        </>
-                      ) : (
-                        <>
-                          <SelectItem value="9">9</SelectItem>
-                          <SelectItem value="11">11</SelectItem>
-                          <SelectItem value="12">12</SelectItem>
-                          <SelectItem value="14">14</SelectItem>
-                          <SelectItem value="17">17</SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {newModelTermType && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="newModelInstallments">No. Cuotas</Label>
+                    <Select 
+                      value={newModelInstallments.toString()} 
+                      onValueChange={(value) => setNewModelInstallments(parseInt(value))}
+                    >
+                      <SelectTrigger id="newModelInstallments">
+                        <SelectValue placeholder="Seleccione número de cuotas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {newModelTermType === 'corto' ? (
+                          <>
+                            <SelectItem value="3">3</SelectItem>
+                            <SelectItem value="4">4</SelectItem>
+                            <SelectItem value="5">5</SelectItem>
+                            <SelectItem value="6">6</SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="9">9</SelectItem>
+                            <SelectItem value="11">11</SelectItem>
+                            <SelectItem value="12">12</SelectItem>
+                            <SelectItem value="14">14</SelectItem>
+                            <SelectItem value="17">17</SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
+
+              {newModelTermType === 'largo' && (
+                <div className="space-y-6 p-4 border rounded-lg bg-muted/30">
+                  <div className="grid gap-2">
+                    <Label className="text-sm font-medium">Seleccionar Tasa de Interés</Label>
+                    <div className="flex gap-4 items-center">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="tasaMensual"
+                          name="rateType"
+                          value="mensual"
+                          checked={newModelRateType === 'mensual'}
+                          onChange={(e) => setNewModelRateType(e.target.value as 'mensual' | 'retanqueo')}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="tasaMensual" className="cursor-pointer text-sm">Tasa Int. Mensual ({newModelMonthlyRate}%)</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="tasaRetanqueo"
+                          name="rateType"
+                          value="retanqueo"
+                          checked={newModelRateType === 'retanqueo'}
+                          onChange={(e) => setNewModelRateType(e.target.value as 'mensual' | 'retanqueo')}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="tasaRetanqueo" className="cursor-pointer text-sm">Tasa Int. Retanqueo ({newModelRetanqueoRate}%)</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={() => {
+                      if (!newModelBasePrice || newModelBasePrice <= 0) {
+                        toast.error("Por favor ingrese un Precio Base válido");
+                        return;
+                      }
+                      
+                      // Calcular amortización francesa
+                      const basePrice = newModelBasePrice;
+                      const clientConfig = clientTypeConfig[newModelClientType];
+                      const initialPayment = basePrice * (clientConfig.ci / 100);
+                      const disbursedAmount = basePrice - initialPayment;
+                      
+                      const interestRate = newModelRateType === 'mensual' ? newModelMonthlyRate / 100 : newModelRetanqueoRate / 100;
+                      const tecAdmPerMonth = (disbursedAmount * (newModelTecAdm / 100)) / newModelInstallments;
+                      const fgaPerMonth = basePrice * (clientConfig.fga / 100);
+                      
+                      // Calcular cuota base (capital + interés) usando sistema francés
+                      const r = interestRate;
+                      const n = newModelInstallments;
+                      const fixedPaymentWithoutExtras = disbursedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+                      
+                      let balance = disbursedAmount;
+                      const table = [];
+                      
+                      for (let i = 1; i <= newModelInstallments; i++) {
+                        const interest = balance * interestRate;
+                        const principal = fixedPaymentWithoutExtras - interest;
+                        
+                        // Seguro 1: sobre la cuota (capital + interés)
+                        const seguro1 = fixedPaymentWithoutExtras * (newModelSeguro1 / 100);
+                        
+                        // Seguro 2: (Saldo × Formula) / 1000
+                        const seguro2 = (balance * newModelSeguro2Formula) / 1000;
+                        
+                        // Cuota total = capital + interés + Tec/Adm + FGA + Seguro1 + Seguro2
+                        const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1 + seguro2;
+                        
+                        table.push({
+                          month: i,
+                          balance: balance,
+                          principal: principal,
+                          interest: interest,
+                          tecAdm: tecAdmPerMonth,
+                          fga: fgaPerMonth,
+                          seguro1: seguro1,
+                          seguro2: seguro2,
+                          payment: totalPayment
+                        });
+                        
+                        balance -= principal;
+                      }
+                      
+                      setNewModelAmortizationTable(table);
+                    }}
+                    className="w-full"
+                  >
+                    <Calculator className="w-4 h-4 mr-2" />
+                    Calcular Amortización
+                  </Button>
+
+                  {newModelAmortizationTable.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
+                        <span className="font-semibold">Cuota Inicial:</span>
+                        <span className="text-lg font-bold text-primary">
+                          ${(newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-accent/10 rounded-lg">
+                        <span className="font-semibold">Cuota Mensual:</span>
+                        <span className="text-lg font-bold text-accent">
+                          ${newModelAmortizationTable[0]?.payment.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+
+                      <div className="rounded-md border overflow-auto max-h-96">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs whitespace-nowrap">Mes</TableHead>
+                              <TableHead className="text-xs text-right whitespace-nowrap">Saldo</TableHead>
+                              <TableHead className="text-xs text-right whitespace-nowrap">Capital</TableHead>
+                              <TableHead className="text-xs text-right whitespace-nowrap">Interés</TableHead>
+                              <TableHead className="text-xs text-right whitespace-nowrap">Tec/Adm</TableHead>
+                              <TableHead className="text-xs text-right whitespace-nowrap">FGA</TableHead>
+                              <TableHead className="text-xs text-right whitespace-nowrap">Seg. 1</TableHead>
+                              <TableHead className="text-xs text-right whitespace-nowrap">Seg. 2</TableHead>
+                              <TableHead className="text-xs text-right whitespace-nowrap">Cuota</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {newModelAmortizationTable.map((row) => (
+                              <TableRow key={row.month}>
+                                <TableCell className="text-xs">{row.month}</TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.balance.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.principal.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.interest.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.tecAdm.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.fga.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.seguro1.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.seguro2.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right font-medium">
+                                  ${row.payment.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
