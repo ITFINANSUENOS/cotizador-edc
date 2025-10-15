@@ -756,9 +756,16 @@ const Cotizador = () => {
                     <div className="space-y-2">
                       <Label>Celular</Label>
                       <Input
+                        type="tel"
                         value={clientPhone}
-                        onChange={(e) => setClientPhone(e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          if (value.length <= 10) {
+                            setClientPhone(value);
+                          }
+                        }}
                         placeholder="Ej: 3001234567"
+                        maxLength={10}
                       />
                     </div>
                     <Button onClick={() => {
@@ -1230,9 +1237,16 @@ const Cotizador = () => {
               <div className="space-y-2">
                 <Label>Celular</Label>
                 <Input
+                  type="tel"
                   value={clientPhone}
-                  onChange={(e) => setClientPhone(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    if (value.length <= 10) {
+                      setClientPhone(value);
+                    }
+                  }}
                   placeholder="Ej: 3001234567"
+                  maxLength={10}
                 />
               </div>
               <Button onClick={handleSubmitQuote} className="w-full" disabled={loading}>
