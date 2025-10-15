@@ -733,9 +733,46 @@ const Cotizador = () => {
                       Precio especial para convenios institucionales
                     </p>
                   </div>
-                  <Button onClick={calculateQuote} className="w-full mt-4">
-                    Calcular Cotización
-                  </Button>
+                  
+                  {/* Información del Cliente - Directo para Convenio */}
+                  <div className="space-y-4 mt-6">
+                    <h3 className="font-semibold">Información del Cliente</h3>
+                    <div className="space-y-2">
+                      <Label>Nombre Completo</Label>
+                      <Input
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        placeholder="Ej: Juan Pérez"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cédula (Opcional)</Label>
+                      <Input
+                        value={clientId}
+                        onChange={(e) => setClientId(e.target.value)}
+                        placeholder="Ej: 1234567890"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Celular</Label>
+                      <Input
+                        value={clientPhone}
+                        onChange={(e) => setClientPhone(e.target.value)}
+                        placeholder="Ej: 3001234567"
+                      />
+                    </div>
+                    <Button onClick={() => {
+                      calculateQuote();
+                      // El guardado se hará después del cálculo
+                      setTimeout(() => {
+                        if (clientName && clientPhone) {
+                          handleSubmitQuote();
+                        }
+                      }, 100);
+                    }} className="w-full" disabled={loading || !clientName || !clientPhone}>
+                      {loading ? "Guardando..." : "Guardar cotización como convenio"}
+                    </Button>
+                  </div>
                 </TabsContent>
               </Tabs>
 
