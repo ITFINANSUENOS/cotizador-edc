@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, CreditCard, FileText, HandshakeIcon, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import { LogOut, CreditCard, FileText, HandshakeIcon, Settings, ChevronDown, ChevronUp, X } from "lucide-react";
 import ProductSelector from "@/components/cotizador/ProductSelector";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -163,6 +163,28 @@ const Cotizador = () => {
     setProductPrices(prices);
     setQuote(null);
     setShowClientForm(false);
+  };
+
+  const handleClearProduct = () => {
+    setSelectedProduct(null);
+    setProductPrices(null);
+    setQuote(null);
+    setShowClientForm(false);
+    setShowAmortization(false);
+    setInitialPayment(0);
+    setInicialMayor(false);
+    setInicialMayorValue(0);
+    setAdjustedBasePrice(0);
+    setOriginalMonthlyPayment(0);
+    setRetanqueoEdC(false);
+    setSaldoArpesod(0);
+    setNuevaBaseFS(0);
+    setRetanqueoFS(false);
+    setSaldoFinansuenos(0);
+    setClientName("");
+    setClientId("");
+    setClientPhone("");
+    toast.success("Selección de producto limpiada");
   };
 
   // Función para calcular tabla de amortización con sistema francés
@@ -545,7 +567,20 @@ const Cotizador = () => {
         </Card>
 
         {/* Selector de Productos */}
-        <ProductSelector onProductSelect={handleProductSelect} />
+        <div className="relative">
+          <ProductSelector onProductSelect={handleProductSelect} />
+          {selectedProduct && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearProduct}
+              className="absolute top-4 right-4 h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            >
+              <X className="w-4 h-4 mr-1" />
+              <span className="text-xs">Limpiar</span>
+            </Button>
+          )}
+        </div>
 
         {/* Tipo de Venta */}
         {selectedProduct && productPrices && productPrices.length > 0 && (
