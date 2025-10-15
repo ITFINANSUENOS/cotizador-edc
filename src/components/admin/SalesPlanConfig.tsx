@@ -1095,22 +1095,28 @@ const SalesPlanConfig = () => {
                             const header = document.createElement('div');
                             header.style.marginBottom = '20px';
                             header.innerHTML = `
-                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-                                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px;">
-                                  <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial</div>
-                                  <div style="font-size: 18px; font-weight: bold; color: #1f2937;">$${(newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)).toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                                <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
+                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${(newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)).toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
                                 </div>
-                                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px;">
-                                  <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Cuota I. Adicional</div>
-                                  <div style="font-size: 18px; font-weight: bold; color: #1f2937;">$${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                                <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
+                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota I. Adicional</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
                                 </div>
-                                <div style="background: #fef3c7; padding: 12px; border-radius: 8px;">
-                                  <div style="font-size: 14px; color: #92400e; margin-bottom: 4px;">Descuento</div>
-                                  <div style="font-size: 18px; font-weight: bold; color: #92400e;">${newModelDiscountPercent}% - $${newModelDiscountAmount.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                                <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
+                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial Total</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">${newModelInitialPercent}%</div>
                                 </div>
-                                <div style="background: #dbeafe; padding: 12px; border-radius: 8px;">
-                                  <div style="font-size: 14px; color: #1e40af; margin-bottom: 4px;">Nueva base FS</div>
-                                  <div style="font-size: 18px; font-weight: bold; color: #1e40af;">$${newModelNewBaseFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                              </div>
+                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                                <div style="background: #fef3c7; padding: 10px; border-radius: 6px;">
+                                  <div style="font-size: 13px; color: #92400e; margin-bottom: 4px;">Descuento</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #92400e;">${newModelDiscountPercent}% - $${newModelDiscountAmount.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                                </div>
+                                <div style="background: #dbeafe; padding: 10px; border-radius: 6px;">
+                                  <div style="font-size: 13px; color: #1e40af; margin-bottom: 4px;">Nueva base FS</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #1e40af;">$${newModelNewBaseFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
                                 </div>
                               </div>
                             `;
