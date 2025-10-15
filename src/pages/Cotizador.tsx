@@ -300,14 +300,14 @@ const Cotizador = () => {
           
           // Actualizar todos los valores de forma inmediata
           basePrice = nuevaBase;
-          setNuevaBaseFS(nuevaBase);
-          setAdjustedBasePrice(nuevaBase);
-          monthlyPayment = cuotaFinalVerificacion;
-          
-          // Guardar el original payment para mostrar
-          setOriginalMonthlyPayment(originalPayment);
           remainingBalance = nuevaBase;
           totalPrice = nuevaBase;
+          monthlyPayment = cuotaFinalVerificacion;
+          
+          // Actualizar estados
+          setNuevaBaseFS(nuevaBase);
+          setAdjustedBasePrice(nuevaBase);
+          setOriginalMonthlyPayment(originalPayment);
         } else if (inicialMayor && inicialMayorValue > 0) {
           // Si NO hay retanqueo pero SÍ hay inicial mayor
           const roundedOriginalPayment = Math.ceil(originalPayment / 1000) * 1000;
@@ -371,7 +371,7 @@ const Cotizador = () => {
       productId: selectedProduct.id,
       originalBasePrice: saleType === "credito" && (inicialMayor || retanqueoEdC) ? Number(productPrices[0].credit_price || productPrices[0].list_1_price) : basePrice,
       saldoArpesod: retanqueoEdC ? saldoArpesod : 0,
-      nuevaBaseFS: retanqueoEdC ? nuevaBaseFS : 0
+      nuevaBaseFS: retanqueoEdC ? basePrice : 0 // Usar basePrice que ya tiene el valor calculado
     });
 
     // Mostrar formulario de cliente según el tipo de venta
