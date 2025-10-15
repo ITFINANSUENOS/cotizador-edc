@@ -445,90 +445,21 @@ const SalesPlanConfig = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-2">
-                <Label htmlFor="newModelBasePrice">Precio Base</Label>
-                <Input
-                  id="newModelBasePrice"
-                  type="number"
-                  step="1000"
-                  min="0"
-                  value={newModelBasePrice}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setNewModelBasePrice(val === '' ? 0 : parseFloat(val));
-                  }}
-                  placeholder="Ingrese el precio base"
-                  className="md:max-w-xs"
-                />
-              </div>
-
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label className="text-sm font-medium">Plazo</Label>
-                    <div className="flex gap-4 items-center h-10">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          id="corto"
-                          name="termType"
-                          value="corto"
-                          checked={newModelTermType === 'corto'}
-                          onChange={(e) => {
-                            setNewModelTermType(e.target.value as 'corto' | 'largo');
-                            setNewModelInstallments(e.target.value === 'corto' ? 3 : 9);
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <label htmlFor="corto" className="cursor-pointer text-sm">Corto Plazo</label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          id="largo"
-                          name="termType"
-                          value="largo"
-                          checked={newModelTermType === 'largo'}
-                          onChange={(e) => {
-                            setNewModelTermType(e.target.value as 'corto' | 'largo');
-                            setNewModelInstallments(e.target.value === 'corto' ? 3 : 9);
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <label htmlFor="largo" className="cursor-pointer text-sm">Largo Plazo</label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="newModelInstallments">No. Cuotas</Label>
-                    <Select 
-                      value={newModelInstallments.toString()} 
-                      onValueChange={(value) => setNewModelInstallments(parseInt(value))}
-                    >
-                      <SelectTrigger id="newModelInstallments">
-                        <SelectValue placeholder="Seleccione número de cuotas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {newModelTermType === 'corto' ? (
-                          <>
-                            <SelectItem value="3">3</SelectItem>
-                            <SelectItem value="4">4</SelectItem>
-                            <SelectItem value="5">5</SelectItem>
-                            <SelectItem value="6">6</SelectItem>
-                          </>
-                        ) : (
-                          <>
-                            <SelectItem value="9">9</SelectItem>
-                            <SelectItem value="11">11</SelectItem>
-                            <SelectItem value="12">12</SelectItem>
-                            <SelectItem value="14">14</SelectItem>
-                            <SelectItem value="17">17</SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="newModelBasePrice">Precio Base</Label>
+                  <Input
+                    id="newModelBasePrice"
+                    type="number"
+                    step="1000"
+                    min="0"
+                    value={newModelBasePrice}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNewModelBasePrice(val === '' ? 0 : parseFloat(val));
+                    }}
+                    placeholder="Ingrese el precio base"
+                  />
                 </div>
 
                 <div className="flex items-end gap-2">
@@ -622,6 +553,74 @@ const SalesPlanConfig = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label className="text-sm font-medium">Plazo</Label>
+                  <div className="flex gap-4 items-center h-10">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="corto"
+                        name="termType"
+                        value="corto"
+                        checked={newModelTermType === 'corto'}
+                        onChange={(e) => {
+                          setNewModelTermType(e.target.value as 'corto' | 'largo');
+                          setNewModelInstallments(e.target.value === 'corto' ? 3 : 9);
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="corto" className="cursor-pointer text-sm">Corto Plazo</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="largo"
+                        name="termType"
+                        value="largo"
+                        checked={newModelTermType === 'largo'}
+                        onChange={(e) => {
+                          setNewModelTermType(e.target.value as 'corto' | 'largo');
+                          setNewModelInstallments(e.target.value === 'corto' ? 3 : 9);
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="largo" className="cursor-pointer text-sm">Largo Plazo</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="newModelInstallments">No. Cuotas</Label>
+                  <Select 
+                    value={newModelInstallments.toString()} 
+                    onValueChange={(value) => setNewModelInstallments(parseInt(value))}
+                  >
+                    <SelectTrigger id="newModelInstallments">
+                      <SelectValue placeholder="Seleccione número de cuotas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {newModelTermType === 'corto' ? (
+                        <>
+                          <SelectItem value="3">3</SelectItem>
+                          <SelectItem value="4">4</SelectItem>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="6">6</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="9">9</SelectItem>
+                          <SelectItem value="11">11</SelectItem>
+                          <SelectItem value="12">12</SelectItem>
+                          <SelectItem value="14">14</SelectItem>
+                          <SelectItem value="17">17</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
