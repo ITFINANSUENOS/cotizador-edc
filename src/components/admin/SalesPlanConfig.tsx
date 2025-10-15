@@ -39,6 +39,7 @@ const SalesPlanConfig = () => {
   // Nuevo Modelo Crédito
   const [newModelBasePrice, setNewModelBasePrice] = useState(0);
   const [newModelTermType, setNewModelTermType] = useState<'corto' | 'largo'>('corto');
+  const [newModelInstallments, setNewModelInstallments] = useState<number>(3);
   const [newModelClientType, setNewModelClientType] = useState<string>('AAA');
   const [clientTypeConfig, setClientTypeConfig] = useState<Record<string, { ci: number; fga: number }>>({
     'AAA': { ci: 0, fga: 0 },
@@ -444,145 +445,184 @@ const SalesPlanConfig = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="newModelBasePrice">Precio Base</Label>
-                  <Input
-                    id="newModelBasePrice"
-                    type="number"
-                    step="1000"
-                    min="0"
-                    value={newModelBasePrice}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setNewModelBasePrice(val === '' ? 0 : parseFloat(val));
-                    }}
-                    placeholder="Ingrese el precio base"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label className="text-sm font-medium">Plazo</Label>
-                  <div className="flex gap-4 items-center h-10">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="corto"
-                        name="termType"
-                        value="corto"
-                        checked={newModelTermType === 'corto'}
-                        onChange={(e) => setNewModelTermType(e.target.value as 'corto' | 'largo')}
-                        className="w-4 h-4"
-                      />
-                      <label htmlFor="corto" className="cursor-pointer text-sm">Corto Plazo</label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="largo"
-                        name="termType"
-                        value="largo"
-                        checked={newModelTermType === 'largo'}
-                        onChange={(e) => setNewModelTermType(e.target.value as 'corto' | 'largo')}
-                        className="w-4 h-4"
-                      />
-                      <label htmlFor="largo" className="cursor-pointer text-sm">Largo Plazo</label>
-                    </div>
-                  </div>
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="newModelBasePrice">Precio Base</Label>
+                <Input
+                  id="newModelBasePrice"
+                  type="number"
+                  step="1000"
+                  min="0"
+                  value={newModelBasePrice}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewModelBasePrice(val === '' ? 0 : parseFloat(val));
+                  }}
+                  placeholder="Ingrese el precio base"
+                  className="md:max-w-xs"
+                />
               </div>
 
-              <div className="flex items-end gap-2">
-                <div className="grid gap-2 flex-1">
-                  <Label htmlFor="clientType">Tipo Cliente:</Label>
-                  <Select value={newModelClientType} onValueChange={setNewModelClientType}>
-                    <SelectTrigger id="clientType">
-                      <SelectValue placeholder="Seleccione tipo de cliente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AAA">AAA</SelectItem>
-                      <SelectItem value="AA">AA</SelectItem>
-                      <SelectItem value="A">A</SelectItem>
-                      <SelectItem value="BBB">BBB</SelectItem>
-                      <SelectItem value="BB">BB</SelectItem>
-                      <SelectItem value="B">B</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label className="text-sm font-medium">Plazo</Label>
+                    <div className="flex gap-4 items-center h-10">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="corto"
+                          name="termType"
+                          value="corto"
+                          checked={newModelTermType === 'corto'}
+                          onChange={(e) => {
+                            setNewModelTermType(e.target.value as 'corto' | 'largo');
+                            setNewModelInstallments(e.target.value === 'corto' ? 3 : 9);
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="corto" className="cursor-pointer text-sm">Corto Plazo</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="largo"
+                          name="termType"
+                          value="largo"
+                          checked={newModelTermType === 'largo'}
+                          onChange={(e) => {
+                            setNewModelTermType(e.target.value as 'corto' | 'largo');
+                            setNewModelInstallments(e.target.value === 'corto' ? 3 : 9);
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="largo" className="cursor-pointer text-sm">Largo Plazo</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="newModelInstallments">No. Cuotas</Label>
+                    <Select 
+                      value={newModelInstallments.toString()} 
+                      onValueChange={(value) => setNewModelInstallments(parseInt(value))}
+                    >
+                      <SelectTrigger id="newModelInstallments">
+                        <SelectValue placeholder="Seleccione número de cuotas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {newModelTermType === 'corto' ? (
+                          <>
+                            <SelectItem value="3">3</SelectItem>
+                            <SelectItem value="4">4</SelectItem>
+                            <SelectItem value="5">5</SelectItem>
+                            <SelectItem value="6">6</SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="9">9</SelectItem>
+                            <SelectItem value="11">11</SelectItem>
+                            <SelectItem value="12">12</SelectItem>
+                            <SelectItem value="14">14</SelectItem>
+                            <SelectItem value="17">17</SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="icon" className="shrink-0">
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Configuración por Tipo de Cliente</DialogTitle>
-                      <DialogDescription>
-                        Define el porcentaje de Cuota Inicial (C.I.) y FGA para cada tipo de cliente
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Tipo Cliente</TableHead>
-                            <TableHead className="text-right">C.I. (%)</TableHead>
-                            <TableHead className="text-right">FGA (%)</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {Object.keys(clientTypeConfig).map((type) => (
-                            <TableRow key={type}>
-                              <TableCell className="font-medium">{type}</TableCell>
-                              <TableCell>
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  min="0"
-                                  max="100"
-                                  value={clientTypeConfig[type].ci}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    setClientTypeConfig({
-                                      ...clientTypeConfig,
-                                      [type]: {
-                                        ...clientTypeConfig[type],
-                                        ci: val === '' ? 0 : parseFloat(val)
-                                      }
-                                    });
-                                  }}
-                                  className="text-right"
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  min="0"
-                                  max="100"
-                                  value={clientTypeConfig[type].fga}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    setClientTypeConfig({
-                                      ...clientTypeConfig,
-                                      [type]: {
-                                        ...clientTypeConfig[type],
-                                        fga: val === '' ? 0 : parseFloat(val)
-                                      }
-                                    });
-                                  }}
-                                  className="text-right"
-                                />
-                              </TableCell>
+                <div className="flex items-end gap-2">
+                  <div className="grid gap-2 flex-1">
+                    <Label htmlFor="clientType">Tipo Cliente:</Label>
+                    <Select value={newModelClientType} onValueChange={setNewModelClientType}>
+                      <SelectTrigger id="clientType">
+                        <SelectValue placeholder="Seleccione tipo de cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AAA">AAA</SelectItem>
+                        <SelectItem value="AA">AA</SelectItem>
+                        <SelectItem value="A">A</SelectItem>
+                        <SelectItem value="BBB">BBB</SelectItem>
+                        <SelectItem value="BB">BB</SelectItem>
+                        <SelectItem value="B">B</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="icon" className="shrink-0">
+                        <Settings className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Configuración por Tipo de Cliente</DialogTitle>
+                        <DialogDescription>
+                          Define el porcentaje de Cuota Inicial (C.I.) y FGA para cada tipo de cliente
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Tipo Cliente</TableHead>
+                              <TableHead className="text-right">C.I. (%)</TableHead>
+                              <TableHead className="text-right">FGA (%)</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                          </TableHeader>
+                          <TableBody>
+                            {Object.keys(clientTypeConfig).map((type) => (
+                              <TableRow key={type}>
+                                <TableCell className="font-medium">{type}</TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    max="100"
+                                    value={clientTypeConfig[type].ci}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setClientTypeConfig({
+                                        ...clientTypeConfig,
+                                        [type]: {
+                                          ...clientTypeConfig[type],
+                                          ci: val === '' ? 0 : parseFloat(val)
+                                        }
+                                      });
+                                    }}
+                                    className="text-right"
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    max="100"
+                                    value={clientTypeConfig[type].fga}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setClientTypeConfig({
+                                        ...clientTypeConfig,
+                                        [type]: {
+                                          ...clientTypeConfig[type],
+                                          fga: val === '' ? 0 : parseFloat(val)
+                                        }
+                                      });
+                                    }}
+                                    className="text-right"
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
             </CardContent>
           </Card>
