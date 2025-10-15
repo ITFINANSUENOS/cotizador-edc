@@ -91,7 +91,7 @@ const Admin = () => {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate("/cotizador")}>
+              <Button variant="outline" onClick={() => navigate("/")}>
                 <Settings className="w-4 h-4 mr-2" />
                 Cotizaciones
               </Button>
