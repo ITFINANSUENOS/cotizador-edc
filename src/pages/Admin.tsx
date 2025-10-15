@@ -10,6 +10,7 @@ import AdvisorsManagement from "@/components/admin/AdvisorsManagement";
 import PriceListsManagement from "@/components/admin/PriceListsManagement";
 import SalesPlanConfig from "@/components/admin/SalesPlanConfig";
 import TeamManagement from "@/components/admin/TeamManagement";
+import QuotesManagement from "@/components/admin/QuotesManagement";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -90,6 +91,10 @@ const Admin = () => {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate("/cotizador")}>
+                <Settings className="w-4 h-4 mr-2" />
+                Cotizaciones
+              </Button>
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Cerrar Sesión
@@ -100,9 +105,10 @@ const Admin = () => {
 
         {/* Tabs de Gestión */}
         <Tabs defaultValue="advisors" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="advisors">Gestión de Asesores</TabsTrigger>
             <TabsTrigger value="team">Equipo</TabsTrigger>
+            <TabsTrigger value="quotes">Cotizaciones</TabsTrigger>
             <TabsTrigger value="prices">Listas de Precios</TabsTrigger>
             <TabsTrigger value="plans">Configuración de Planes</TabsTrigger>
           </TabsList>
@@ -113,6 +119,10 @@ const Admin = () => {
 
           <TabsContent value="team">
             <TeamManagement />
+          </TabsContent>
+
+          <TabsContent value="quotes">
+            <QuotesManagement />
           </TabsContent>
 
           <TabsContent value="prices">

@@ -27,6 +27,7 @@ const SalesPlanConfig = () => {
   
   // Crédito Config
   const [monthlyInterestRate, setMonthlyInterestRate] = useState(2.5);
+  const [retanqueoInterestRate, setRetanqueoInterestRate] = useState(1.60);
   const [avalCobrador, setAvalCobrador] = useState(1.5);
   const [testCapital, setTestCapital] = useState(1000000);
   const [testTerm, setTestTerm] = useState(12);
@@ -63,6 +64,7 @@ const SalesPlanConfig = () => {
       if (configMap.credito) {
         const config = configMap.credito.config;
         setMonthlyInterestRate(config.monthly_interest_rate || 2.5);
+        setRetanqueoInterestRate(config.retanqueo_interest_rate || 1.60);
         setAvalCobrador(config.aval_cobrador_percentage || 1.5);
       }
     }
@@ -156,6 +158,7 @@ const SalesPlanConfig = () => {
   const saveCreditoConfig = async () => {
     const config = {
       monthly_interest_rate: monthlyInterestRate,
+      retanqueo_interest_rate: retanqueoInterestRate,
       aval_cobrador_percentage: avalCobrador,
       available_terms: configs.credito?.config?.available_terms || [9, 11, 14, 17],
     };
@@ -242,7 +245,7 @@ const SalesPlanConfig = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-3">
                   <div className="grid gap-2">
                     <Label htmlFor="monthlyInterest">Tasa de Interés Mensual (%)</Label>
                     <Input
@@ -251,6 +254,17 @@ const SalesPlanConfig = () => {
                       step="0.1"
                       value={monthlyInterestRate}
                       onChange={(e) => setMonthlyInterestRate(parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="retanqueoInterest">Tasa de Interés Retanqueo (%)</Label>
+                    <Input
+                      id="retanqueoInterest"
+                      type="number"
+                      step="0.01"
+                      value={retanqueoInterestRate}
+                      onChange={(e) => setRetanqueoInterestRate(parseFloat(e.target.value) || 0)}
                     />
                   </div>
 

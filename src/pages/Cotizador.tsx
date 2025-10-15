@@ -45,6 +45,8 @@ const Cotizador = () => {
     setRetanqueoEdC(false);
     setSaldoArpesod(0);
     setNuevaBaseFS(0);
+    setRetanqueoFS(false);
+    setSaldoFinansuenos(0);
     setClientName("");
     setClientId("");
     setClientPhone("");
@@ -84,8 +86,15 @@ const Cotizador = () => {
   const [saldoArpesod, setSaldoArpesod] = useState(0);
   const [nuevaBaseFS, setNuevaBaseFS] = useState(0);
   
+  // Retanqueo FS a FS
+  const [retanqueoFS, setRetanqueoFS] = useState(false);
+  const [saldoFinansuenos, setSaldoFinansuenos] = useState(0);
+  
   // Historial de cotizaciones
   const [showQuotesHistory, setShowQuotesHistory] = useState(false);
+  
+  // Tasa de interés de retanqueo (cargada desde config)
+  const [retanqueoInterestRate, setRetanqueoInterestRate] = useState(1.60);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -115,6 +124,20 @@ const Cotizador = () => {
           .single();
         
         setIsAdmin(!!roleData);
+        
+        // Load retanqueo interest rate from config
+        const { data: configData } = await supabase
+          .from("sales_plan_config")
+          .select("config")
+          .eq("plan_type", "credito")
+          .single();
+        
+        if (configData?.config) {
+          const config = configData.config as any;
+          if (config.retanqueo_interest_rate) {
+            setRetanqueoInterestRate(config.retanqueo_interest_rate);
+          }
+        }
       }
     };
     checkUser();
@@ -143,9 +166,10 @@ const Cotizador = () => {
   };
 
   // Función para calcular tabla de amortización con sistema francés
-  const calculateAmortization = (basePrice: number, months: number) => {
+  const calculateAmortization = (basePrice: number, months: number, customInterestRate?: number) => {
     const avalRate = 0.02; // 2% del precio base (fijo en todas las cuotas)
-    const interestRate = 0.0187; // 1.87% mensual sobre saldo
+    // Usar tasa de retanqueo si se proporciona, sino usar tasa normal
+    const interestRate = customInterestRate !== undefined ? customInterestRate / 100 : 0.0187;
     
     const fixedAval = basePrice * avalRate; // Aval fijo para todas las cuotas
     
@@ -312,6 +336,38 @@ const Cotizador = () => {
           setNuevaBaseFS(nuevaBase);
           setAdjustedBasePrice(nuevaBase);
           setOriginalMonthlyPayment(originalPayment);
+        } else if (retanqueoFS && saldoFinansuenos > 0) {
+          // Retanqueo FS a FS - Sumar saldo FinanSueños a la base y recalcular con tasa de retanqueo
+          const r = retanqueoInterestRate / 100; // Usar tasa de retanqueo desde config
+          const n = installments;
+          
+          // Nueva base = Base original + Saldo FinanSueños
+          const nuevaBase = originalBasePrice + saldoFinansuenos;
+          
+          // Calcular cuota mensual con la nueva base y tasa de retanqueo
+          const fixedPaymentWithoutAval = nuevaBase * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+          const avalFijo = nuevaBase * 0.02;
+          const cuotaSinRedondear = fixedPaymentWithoutAval + avalFijo;
+          const cuotaRedondeada = Math.ceil(cuotaSinRedondear / 1000) * 1000;
+          
+          console.log("=== DEBUG RETANQUEO FS a FS ===");
+          console.log("Base Original:", originalBasePrice);
+          console.log("Saldo FinanSueños:", saldoFinansuenos);
+          console.log("Nueva Base:", nuevaBase);
+          console.log("Tasa Retanqueo:", retanqueoInterestRate);
+          console.log("Cuota sin redondear:", cuotaSinRedondear);
+          console.log("Cuota redondeada:", cuotaRedondeada);
+          console.log("=============================");
+          
+          // Actualizar valores
+          basePrice = nuevaBase;
+          remainingBalance = nuevaBase;
+          totalPrice = nuevaBase;
+          monthlyPayment = cuotaRedondeada;
+          
+          // Actualizar estados
+          setAdjustedBasePrice(nuevaBase);
+          setOriginalMonthlyPayment(originalPayment);
         } else if (inicialMayor && inicialMayorValue > 0) {
           // Si NO hay retanqueo pero SÍ hay inicial mayor
           const roundedOriginalPayment = Math.ceil(originalPayment / 1000) * 1000;
@@ -373,9 +429,11 @@ const Cotizador = () => {
       saleType,
       priceListId: priceData.price_list_id,
       productId: selectedProduct.id,
-      originalBasePrice: saleType === "credito" && (inicialMayor || retanqueoEdC) ? Number(productPrices[0].credit_price || productPrices[0].list_1_price) : basePrice,
+      originalBasePrice: saleType === "credito" && (inicialMayor || retanqueoEdC || retanqueoFS) ? Number(productPrices[0].credit_price || productPrices[0].list_1_price) : basePrice,
       saldoArpesod: retanqueoEdC ? saldoArpesod : 0,
-      nuevaBaseFS: retanqueoEdC ? basePrice : 0 // Usar basePrice que ya tiene el valor calculado
+      nuevaBaseFS: retanqueoEdC ? basePrice : 0, // Usar basePrice que ya tiene el valor calculado
+      saldoFinansuenos: retanqueoFS ? saldoFinansuenos : 0,
+      baseFinalFS: retanqueoFS ? basePrice : 0 // Base final después del retanqueo FS a FS
     });
 
     // Mostrar formulario de cliente según el tipo de venta
@@ -695,11 +753,58 @@ const Cotizador = () => {
                           </div>
                         </div>
                         
-                        <div className="flex items-center space-x-3 opacity-50">
-                          <Checkbox id="retanqueo-fs" disabled />
-                          <Label htmlFor="retanqueo-fs" className="text-sm">
-                            Retanqueo FS a FS <span className="text-xs text-muted-foreground">(Próximamente)</span>
-                          </Label>
+                        <div className="flex items-start space-x-3">
+                          <Checkbox 
+                            id="retanqueo-fs"
+                            checked={retanqueoFS}
+                            onCheckedChange={(checked) => {
+                              setRetanqueoFS(checked as boolean);
+                              if (!checked) {
+                                setSaldoFinansuenos(0);
+                              }
+                            }}
+                          />
+                          <div className="flex-1 space-y-2">
+                            <Label htmlFor="retanqueo-fs" className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                              Retanqueo FS a FS
+                              <span className="text-xs text-muted-foreground">
+                                (Tasa: {retanqueoInterestRate}%)
+                              </span>
+                            </Label>
+                            {retanqueoFS && (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    value={saldoFinansuenos || ""}
+                                    onChange={(e) => {
+                                      setSaldoFinansuenos(Number(e.target.value) || 0);
+                                    }}
+                                    placeholder="Saldo FinanSueños"
+                                    className="mt-2"
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shrink-0"
+                                    onClick={() => toast.info('Aquí debes escribir el saldo del "Total a Pagar" que muestra Manager al momento de marcar la casilla "Pago Total"')}
+                                  >
+                                    <span className="text-xs bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center">i</span>
+                                  </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Saldo FinanSueños <span className="text-[10px]">(pago total)</span>
+                                </p>
+                                <Button 
+                                  size="sm" 
+                                  onClick={calculateQuote}
+                                  className="mt-2 w-full"
+                                >
+                                  Recalcular con Retanqueo
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         
                         <div className="flex items-start space-x-3">
@@ -759,7 +864,79 @@ const Cotizador = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {saleType === "credito" && retanqueoEdC && quote.saldoArpesod && quote.saldoArpesod > 0 ? (
+              {saleType === "credito" && retanqueoFS && quote.saldoFinansuenos && quote.saldoFinansuenos > 0 ? (
+                <>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Precio Base:</span>
+                    <span className="font-bold">${quote.originalBasePrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Saldo FS:</span>
+                    <span className="font-bold text-blue-600">${quote.saldoFinansuenos.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Base Final:</span>
+                    <span className="font-bold text-primary">${Math.round(quote.baseFinalFS).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Número de Cuotas:</span>
+                    <span className="font-bold">{quote.installments}</span>
+                  </div>
+                  <div className="flex justify-between py-3 bg-accent/10 px-4 rounded-lg">
+                    <span className="font-bold text-lg">Cuota Mensual:</span>
+                    <span className="font-bold text-xl text-accent">${Math.round(quote.monthlyPayment).toLocaleString()}</span>
+                  </div>
+                  
+                  {/* Botón para desplegar amortización */}
+                  <Collapsible open={showAmortization} onOpenChange={setShowAmortization}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full mt-4">
+                        {showAmortization ? (
+                          <>
+                            <ChevronUp className="w-4 h-4 mr-2" />
+                            Ocultar Amortización
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="w-4 h-4 mr-2" />
+                            Ver Tabla de Amortización
+                          </>
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-4">
+                      {showAmortization && (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-muted">
+                              <tr>
+                                <th className="p-2 text-left">Mes</th>
+                                <th className="p-2 text-right">Saldo</th>
+                                <th className="p-2 text-right">Capital</th>
+                                <th className="p-2 text-right">Interés</th>
+                                <th className="p-2 text-right">Aval</th>
+                                <th className="p-2 text-right">Cuota</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {calculateAmortization(quote.baseFinalFS, quote.installments, retanqueoInterestRate).map((row) => (
+                                <tr key={row.month} className="border-b">
+                                  <td className="p-2">{row.month}</td>
+                                  <td className="p-2 text-right">${row.balance.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                  <td className="p-2 text-right">${row.principal.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                  <td className="p-2 text-right">${row.interest.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                  <td className="p-2 text-right">${row.aval.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                  <td className="p-2 text-right font-bold">${(Math.ceil(row.payment / 1000) * 1000).toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
+                </>
+              ) : saleType === "credito" && retanqueoEdC && quote.saldoArpesod && quote.saldoArpesod > 0 ? (
                 <>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Precio Base:</span>
