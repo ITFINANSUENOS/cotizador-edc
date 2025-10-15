@@ -768,8 +768,8 @@ const Cotizador = () => {
                           />
                           <div className="flex-1 space-y-2">
                             <Label htmlFor="inicial-mayor" className="text-sm font-medium cursor-pointer">
-                              <span className="hidden sm:inline">Cuota Inicial Adicional</span>
-                              <span className="sm:hidden">Inicial Adicional</span>
+                              <span className="hidden sm:inline">Cuota Inicial Mayor</span>
+                              <span className="sm:hidden">Inicial Mayor</span>
                             </Label>
                             {inicialMayor && (
                               <div className="space-y-1">
@@ -1066,15 +1066,8 @@ const Cotizador = () => {
                     <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Descuento:</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground">
-                        ({((Math.max(0, quote.initialPayment - (Math.ceil(originalMonthlyPayment / 1000) * 1000)) / quote.originalBasePrice) * 100).toFixed(1)}%)
-                      </span>
-                      <span className="font-bold text-green-600">
-                        ${Math.max(0, quote.initialPayment - (Math.ceil(originalMonthlyPayment / 1000) * 1000)).toLocaleString()}
-                      </span>
-                    </div>
+                    <span className="font-medium">Nueva Base FS:</span>
+                    <span className="font-bold text-primary">${quote.basePrice.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Número de Cuotas:</span>
