@@ -1007,7 +1007,7 @@ const SalesPlanConfig = () => {
                       <div className="flex justify-between items-center p-3 bg-accent/10 rounded-lg">
                         <span className="font-semibold">Cuota Mensual:</span>
                         <span className="text-lg font-bold text-accent">
-                          ${Math.ceil(newModelAmortizationTable[0]?.payment / 1000) * 1000}
+                          ${(Math.ceil(newModelAmortizationTable[0]?.payment / 1000) * 1000).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                         </span>
                       </div>
 
@@ -1081,23 +1081,58 @@ const SalesPlanConfig = () => {
                       
                       <Button 
                         onClick={async () => {
-                          const element = document.getElementById('amortization-table-container');
-                          if (!element) return;
+                          const tableElement = document.getElementById('amortization-table-container');
+                          if (!tableElement) return;
                           
                           try {
-                            const originalMaxHeight = element.style.maxHeight;
-                            const originalOverflow = element.style.overflow;
-                            element.style.maxHeight = 'none';
-                            element.style.overflow = 'visible';
+                            // Crear un contenedor temporal con toda la información
+                            const container = document.createElement('div');
+                            container.style.backgroundColor = '#ffffff';
+                            container.style.padding = '20px';
+                            container.style.fontFamily = 'system-ui, -apple-system, sans-serif';
                             
-                            const canvas = await html2canvas(element, {
+                            // Información superior
+                            const header = document.createElement('div');
+                            header.style.marginBottom = '20px';
+                            header.innerHTML = `
+                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px;">
+                                  <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial</div>
+                                  <div style="font-size: 18px; font-weight: bold; color: #1f2937;">$${(newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)).toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                                </div>
+                                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px;">
+                                  <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Cuota I. Adicional</div>
+                                  <div style="font-size: 18px; font-weight: bold; color: #1f2937;">$${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                                </div>
+                                <div style="background: #fef3c7; padding: 12px; border-radius: 8px;">
+                                  <div style="font-size: 14px; color: #92400e; margin-bottom: 4px;">Descuento</div>
+                                  <div style="font-size: 18px; font-weight: bold; color: #92400e;">${newModelDiscountPercent}% - $${newModelDiscountAmount.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                                </div>
+                                <div style="background: #dbeafe; padding: 12px; border-radius: 8px;">
+                                  <div style="font-size: 14px; color: #1e40af; margin-bottom: 4px;">Nueva base FS</div>
+                                  <div style="font-size: 18px; font-weight: bold; color: #1e40af;">$${newModelNewBaseFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                                </div>
+                              </div>
+                            `;
+                            container.appendChild(header);
+                            
+                            // Clonar la tabla
+                            const tableClone = tableElement.cloneNode(true) as HTMLElement;
+                            tableClone.style.maxHeight = 'none';
+                            tableClone.style.overflow = 'visible';
+                            container.appendChild(tableClone);
+                            
+                            // Añadir al DOM temporalmente
+                            document.body.appendChild(container);
+                            
+                            const canvas = await html2canvas(container, {
                               backgroundColor: '#ffffff',
                               scale: 2,
-                              windowHeight: element.scrollHeight
+                              windowHeight: container.scrollHeight
                             });
                             
-                            element.style.maxHeight = originalMaxHeight;
-                            element.style.overflow = originalOverflow;
+                            // Limpiar
+                            document.body.removeChild(container);
                             
                             const link = document.createElement('a');
                             link.download = `amortizacion-${new Date().toISOString().split('T')[0]}.png`;
