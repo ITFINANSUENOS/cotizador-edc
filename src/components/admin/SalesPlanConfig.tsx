@@ -797,10 +797,11 @@ const SalesPlanConfig = () => {
                       const basePrice = newModelBasePrice;
                       const clientConfig = clientTypeConfig[newModelClientType];
                       const initialPayment = basePrice * (clientConfig.ci / 100);
-                      const disbursedAmount = basePrice - initialPayment;
+                      // La cuota inicial es un pago adicional, no descuenta del precio base
+                      const disbursedAmount = basePrice;
                       
                       const interestRate = newModelRateType === 'mensual' ? newModelMonthlyRate / 100 : newModelRetanqueoRate / 100;
-                      const tecAdmPerMonth = (disbursedAmount * (newModelTecAdm / 100)) / newModelInstallments;
+                      const tecAdmPerMonth = (basePrice * (newModelTecAdm / 100)) / newModelInstallments;
                       const fgaPerMonth = basePrice * (clientConfig.fga / 100);
                       
                       // Calcular cuota base (capital + interés) usando sistema francés
@@ -925,9 +926,7 @@ const SalesPlanConfig = () => {
                               <TableCell className="text-xs text-right font-bold">
                                 ${newModelAmortizationTable.reduce((sum, row) => sum + row.seguro2, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                               </TableCell>
-                              <TableCell className="text-xs text-right font-bold">
-                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.payment, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold"></TableCell>
                             </TableRow>
                           </TableBody>
                         </Table>
@@ -939,10 +938,21 @@ const SalesPlanConfig = () => {
                           if (!element) return;
                           
                           try {
+                            // Remover temporalmente el scroll para capturar toda la tabla
+                            const originalMaxHeight = element.style.maxHeight;
+                            const originalOverflow = element.style.overflow;
+                            element.style.maxHeight = 'none';
+                            element.style.overflow = 'visible';
+                            
                             const canvas = await html2canvas(element, {
                               backgroundColor: '#ffffff',
-                              scale: 2
+                              scale: 2,
+                              windowHeight: element.scrollHeight
                             });
+                            
+                            // Restaurar el scroll
+                            element.style.maxHeight = originalMaxHeight;
+                            element.style.overflow = originalOverflow;
                             
                             const link = document.createElement('a');
                             link.download = `amortizacion-${new Date().toISOString().split('T')[0]}.png`;
