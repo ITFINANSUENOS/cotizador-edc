@@ -558,11 +558,11 @@ const Cotizador = () => {
             </CardHeader>
             <CardContent>
               <Tabs value={saleType} onValueChange={(v) => handleSaleTypeChange(v as any)}>
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-                  <TabsTrigger value="contado" className="text-xs sm:text-sm">Contado</TabsTrigger>
-                  <TabsTrigger value="credicontado" className="text-xs sm:text-sm">CrediContado</TabsTrigger>
-                  <TabsTrigger value="credito" className="text-xs sm:text-sm">Crédito</TabsTrigger>
-                  <TabsTrigger value="convenio" className="text-xs sm:text-sm">Convenio</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="contado" className="text-[10px] sm:text-sm px-1 sm:px-3">Contado</TabsTrigger>
+                  <TabsTrigger value="credicontado" className="text-[10px] sm:text-sm px-1 sm:px-3">CrediContado</TabsTrigger>
+                  <TabsTrigger value="credito" className="text-[10px] sm:text-sm px-1 sm:px-3">Crédito</TabsTrigger>
+                  <TabsTrigger value="convenio" className="text-[10px] sm:text-sm px-1 sm:px-3">Convenio</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="contado" className="space-y-4 mt-4">
