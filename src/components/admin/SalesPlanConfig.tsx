@@ -83,6 +83,11 @@ const SalesPlanConfig = () => {
     }
   };
 
+  const handleAmortizationTypeChange = (type: 'arpesod' | 'retanqueo') => {
+    setTestAmortizationType(type);
+    setAmortizationTable([]);
+  };
+
   const handlePercentageChange = (installment: number, value: string) => {
     const numValue = parseFloat(value) || 0;
     setPercentages({ ...percentages, [installment]: numValue });
@@ -110,7 +115,8 @@ const SalesPlanConfig = () => {
 
   const calculateAmortization = () => {
     const capital = testCapital;
-    const monthlyRate = monthlyInterestRate / 100;
+    const interestRate = testAmortizationType === 'arpesod' ? monthlyInterestRate : retanqueoInterestRate;
+    const monthlyRate = interestRate / 100;
     const avalRate = avalCobrador / 100;
     const term = testTerm;
     
@@ -306,7 +312,7 @@ const SalesPlanConfig = () => {
                         name="testType"
                         value="arpesod"
                         checked={testAmortizationType === 'arpesod'}
-                        onChange={(e) => setTestAmortizationType(e.target.value as 'arpesod' | 'retanqueo')}
+                        onChange={(e) => handleAmortizationTypeChange(e.target.value as 'arpesod' | 'retanqueo')}
                         className="w-4 h-4"
                       />
                       <label htmlFor="arpesod" className="cursor-pointer">Crédito Arpesod</label>
@@ -318,7 +324,7 @@ const SalesPlanConfig = () => {
                         name="testType"
                         value="retanqueo"
                         checked={testAmortizationType === 'retanqueo'}
-                        onChange={(e) => setTestAmortizationType(e.target.value as 'arpesod' | 'retanqueo')}
+                        onChange={(e) => handleAmortizationTypeChange(e.target.value as 'arpesod' | 'retanqueo')}
                         className="w-4 h-4"
                       />
                       <label htmlFor="retanqueo" className="cursor-pointer">Retanqueo FS</label>
