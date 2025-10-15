@@ -765,11 +765,8 @@ const Cotizador = () => {
                             }}
                           />
                           <div className="flex-1 space-y-2">
-                            <Label htmlFor="retanqueo-fs" className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                            <Label htmlFor="retanqueo-fs" className="text-sm font-medium cursor-pointer">
                               Retanqueo FS a FS
-                              <span className="text-xs text-muted-foreground">
-                                (Tasa: {retanqueoInterestRate}%)
-                              </span>
                             </Label>
                             {retanqueoFS && (
                               <div className="space-y-1">
@@ -958,6 +955,55 @@ const Cotizador = () => {
                     <span className="font-bold text-lg">Cuota Mensual:</span>
                     <span className="font-bold text-xl text-accent">${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}</span>
                   </div>
+                  
+                  {/* Botón para desplegar amortización en retanqueo EdC a FS */}
+                  <Collapsible open={showAmortization} onOpenChange={setShowAmortization}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full mt-4">
+                        {showAmortization ? (
+                          <>
+                            <ChevronUp className="w-4 h-4 mr-2" />
+                            Ocultar Amortización
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="w-4 h-4 mr-2" />
+                            Ver Tabla de Amortización
+                          </>
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-4">
+                      {showAmortization && (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-muted">
+                              <tr>
+                                <th className="p-2 text-left">Mes</th>
+                                <th className="p-2 text-right">Saldo</th>
+                                <th className="p-2 text-right">Capital</th>
+                                <th className="p-2 text-right">Interés</th>
+                                <th className="p-2 text-right">Aval</th>
+                                <th className="p-2 text-right">Cuota</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {calculateAmortization(quote.nuevaBaseFS, quote.installments).map((row) => (
+                                <tr key={row.month} className="border-b">
+                                  <td className="p-2">{row.month}</td>
+                                  <td className="p-2 text-right">${row.balance.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                  <td className="p-2 text-right">${row.principal.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                  <td className="p-2 text-right">${row.interest.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                  <td className="p-2 text-right">${row.aval.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                  <td className="p-2 text-right font-bold">${(Math.ceil(row.payment / 1000) * 1000).toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
                 </>
               ) : saleType === "credito" && inicialMayor && quote.originalBasePrice ? (
                 <>

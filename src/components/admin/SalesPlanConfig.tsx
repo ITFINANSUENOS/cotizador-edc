@@ -32,6 +32,7 @@ const SalesPlanConfig = () => {
   const [testCapital, setTestCapital] = useState(1000000);
   const [testTerm, setTestTerm] = useState(12);
   const [amortizationTable, setAmortizationTable] = useState<any[]>([]);
+  const [testAmortizationType, setTestAmortizationType] = useState<'arpesod' | 'retanqueo'>('arpesod');
 
   useEffect(() => {
     loadConfigs();
@@ -295,9 +296,39 @@ const SalesPlanConfig = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-4 mb-4">
+                  <Label className="text-base font-semibold">Tipo de Prueba</Label>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="arpesod"
+                        name="testType"
+                        value="arpesod"
+                        checked={testAmortizationType === 'arpesod'}
+                        onChange={(e) => setTestAmortizationType(e.target.value as 'arpesod' | 'retanqueo')}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="arpesod" className="cursor-pointer">Crédito Arpesod</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="retanqueo"
+                        name="testType"
+                        value="retanqueo"
+                        checked={testAmortizationType === 'retanqueo'}
+                        onChange={(e) => setTestAmortizationType(e.target.value as 'arpesod' | 'retanqueo')}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="retanqueo" className="cursor-pointer">Retanqueo FS</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="testCapital">Capital de Prueba</Label>
+                    <Label htmlFor="testCapital" className="text-sm font-medium">Capital de Prueba</Label>
                     <Input
                       id="testCapital"
                       type="number"
@@ -307,7 +338,7 @@ const SalesPlanConfig = () => {
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="testTerm">Plazo (meses)</Label>
+                    <Label htmlFor="testTerm" className="text-sm font-medium">Plazo (meses)</Label>
                     <Input
                       id="testTerm"
                       type="number"
@@ -324,40 +355,42 @@ const SalesPlanConfig = () => {
 
                 {amortizationTable.length > 0 && (
                   <div className="rounded-md border overflow-auto max-h-96">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Mes</TableHead>
-                          <TableHead className="text-right">Capital</TableHead>
-                          <TableHead className="text-right">Interés</TableHead>
-                          <TableHead className="text-right">Aval</TableHead>
-                          <TableHead className="text-right">Total Mensual</TableHead>
-                          <TableHead className="text-right">Saldo</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {amortizationTable.map((row) => (
-                          <TableRow key={row.month}>
-                            <TableCell>{row.month}</TableCell>
-                            <TableCell className="text-right">
-                              ${row.capital.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              ${row.interest.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              ${row.aval.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              ${row.total.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                            </TableCell>
-                            <TableCell className="text-right text-muted-foreground">
-                              ${row.remainingCapital.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                            </TableCell>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs sm:text-sm whitespace-nowrap">Mes</TableHead>
+                            <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Capital</TableHead>
+                            <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Interés</TableHead>
+                            <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Aval</TableHead>
+                            <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Total</TableHead>
+                            <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Saldo</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {amortizationTable.map((row) => (
+                            <TableRow key={row.month}>
+                              <TableCell className="text-xs sm:text-sm">{row.month}</TableCell>
+                              <TableCell className="text-xs sm:text-sm text-right">
+                                ${row.capital.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs sm:text-sm text-right">
+                                ${row.interest.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs sm:text-sm text-right">
+                                ${row.aval.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs sm:text-sm text-right font-medium">
+                                ${row.total.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs sm:text-sm text-right text-muted-foreground">
+                                ${row.remainingCapital.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 )}
               </CardContent>
