@@ -32,9 +32,9 @@ interface Quote {
 const QuotesManagement = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
-  const [regionalFilter, setRegionalFilter] = useState("");
-  const [advisorCodeFilter, setAdvisorCodeFilter] = useState("");
-  const [salesManagerFilter, setSalesManagerFilter] = useState("");
+  const [regionalFilter, setRegionalFilter] = useState("all");
+  const [advisorCodeFilter, setAdvisorCodeFilter] = useState("all");
+  const [salesManagerFilter, setSalesManagerFilter] = useState("all");
   
   const [regionals, setRegionals] = useState<string[]>([]);
   const [advisorCodes, setAdvisorCodes] = useState<Array<{ code: string; name: string }>>([]);
@@ -207,9 +207,9 @@ const QuotesManagement = () => {
   };
 
   const filteredQuotes = quotes.filter(quote => {
-    if (regionalFilter && quote.advisor?.regional !== regionalFilter) return false;
-    if (advisorCodeFilter && quote.advisor?.advisor_code !== advisorCodeFilter) return false;
-    if (salesManagerFilter && quote.advisor?.sales_manager !== salesManagerFilter) return false;
+    if (regionalFilter && regionalFilter !== "all" && quote.advisor?.regional !== regionalFilter) return false;
+    if (advisorCodeFilter && advisorCodeFilter !== "all" && quote.advisor?.advisor_code !== advisorCodeFilter) return false;
+    if (salesManagerFilter && salesManagerFilter !== "all" && quote.advisor?.sales_manager !== salesManagerFilter) return false;
     return true;
   });
 
@@ -231,7 +231,7 @@ const QuotesManagement = () => {
                 <SelectValue placeholder="Todas las regionales" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas</SelectItem>
+                <SelectItem value="all">Todas</SelectItem>
                 {regionals.map(regional => (
                   <SelectItem key={regional} value={regional}>
                     {regional}
@@ -248,7 +248,7 @@ const QuotesManagement = () => {
                 <SelectValue placeholder="Todos los asesores" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 {advisorCodes.map(advisor => (
                   <SelectItem key={advisor.code} value={advisor.code}>
                     {advisor.code} - {advisor.name}
@@ -265,7 +265,7 @@ const QuotesManagement = () => {
                 <SelectValue placeholder="Todos los jefes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 {salesManagers.map(manager => (
                   <SelectItem key={manager} value={manager}>
                     {manager}
