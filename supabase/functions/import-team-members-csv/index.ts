@@ -86,6 +86,28 @@ serve(async (req) => {
         continue
       }
 
+      // Validate inputs
+      if (nombreCompleto.length > 100) {
+        console.log(`Skipping line ${i}: Name too long`)
+        errorMessages.push(`Línea ${i}: Nombre demasiado largo`)
+        errors++
+        continue
+      }
+
+      if (telefono && !/^[0-9\s\-+()]{7,20}$/.test(telefono)) {
+        console.log(`Skipping line ${i}: Invalid phone format`)
+        errorMessages.push(`Línea ${i}: Formato de teléfono inválido`)
+        errors++
+        continue
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        console.log(`Skipping line ${i}: Invalid email format`)
+        errorMessages.push(`Línea ${i}: Formato de email inválido`)
+        errors++
+        continue
+      }
+
       // Parse roles
       const roles = rolesStr ? rolesStr.split(',').map((r: string) => r.trim().toLowerCase()) : []
 
@@ -136,12 +158,30 @@ serve(async (req) => {
 
           imported++
         } else {
+          // Generate secure random password
+          const generateSecurePassword = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+            let password = '';
+            const array = new Uint8Array(16);
+            crypto.getRandomValues(array);
+            for (let i = 0; i < 16; i++) {
+              password += chars[array[i] % chars.length];
+            }
+            return password;
+          };
+
+          const tempPassword = generateSecurePassword();
+
           // Create new user
-          const tempPassword = `temp${cedula}`
           const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
             email: email,
             password: tempPassword,
-            email_confirm: true,
+            email_confirm: false,
+            user_metadata: {
+              force_password_reset: true,
+              account_created_by_import: true,
+              document_id: cedula
+            }
           })
 
           if (authError) {
@@ -150,6 +190,8 @@ serve(async (req) => {
             errorMessages.push(`${nombreCompleto}: ${authError.message}`)
             continue
           }
+
+          console.log(`Created team member ${nombreCompleto} with secure password. Email: ${email}`)
 
           // Create team member profile
           const { error: memberError } = await supabaseClient
