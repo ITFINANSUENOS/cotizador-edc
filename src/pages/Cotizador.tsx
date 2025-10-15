@@ -1104,7 +1104,7 @@ const Cotizador = () => {
                   </div>
                 </>
               )}
-              {!(saleType === "credito" && (inicialMayor || retanqueoEdC) && quote.originalBasePrice) && (
+              {!(saleType === "credito" && (inicialMayor || retanqueoEdC || retanqueoFS) && quote.originalBasePrice) && (
                 <>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Precio Total:</span>
