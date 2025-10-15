@@ -1122,7 +1122,7 @@ const Cotizador = () => {
               )}
               
               {/* Tabla de Amortización - Solo para Crédito sin Retanqueo */}
-              {saleType === "credito" && !retanqueoEdC && (
+              {saleType === "credito" && !retanqueoEdC && !retanqueoFS && (
                 <Collapsible open={showAmortization} onOpenChange={setShowAmortization}>
                   <CollapsibleTrigger asChild>
                     <Button variant="outline" className="w-full mt-4">
