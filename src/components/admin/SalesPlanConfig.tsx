@@ -55,6 +55,7 @@ const SalesPlanConfig = () => {
   const [newModelDiscountPercent, setNewModelDiscountPercent] = useState(0);
   const [newModelDiscountAmount, setNewModelDiscountAmount] = useState(0);
   const [newModelNewBaseFS, setNewModelNewBaseFS] = useState(0);
+  const [newModelFinancedAmount, setNewModelFinancedAmount] = useState(0);
   const [clientTypeConfig, setClientTypeConfig] = useState<Record<string, { ci: number; fga: number }>>({
     'AAA': { ci: 0, fga: 0.25 },
     'AA': { ci: 0, fga: 0.25 },
@@ -913,12 +914,16 @@ const SalesPlanConfig = () => {
                       const discountAmount = basePrice * (discountPercent / 100);
                       const discountedPrice = basePrice - discountAmount;
                       
+                      // Calcular valor a financiar (Nueva base FS - Cuota I. Adicional)
+                      const financedAmount = discountedPrice - newModelAdditionalInitial;
+                      
                       // Guardar valores para mostrar en UI
                       setNewModelInitialPercent(initialPercent);
                       setNewModelDiscountPercent(discountPercent);
                       setNewModelDiscountAmount(discountAmount);
                       setNewModelNewBaseFS(discountedPrice);
-                      const disbursedAmount = discountedPrice;
+                      setNewModelFinancedAmount(financedAmount);
+                      const disbursedAmount = financedAmount;
                       
                       // Usar tasa mensual para corto plazo
                       const interestRate = newModelMonthlyRate / 100;
@@ -989,6 +994,13 @@ const SalesPlanConfig = () => {
                         <span className="font-semibold">Nueva base FS:</span>
                         <span className="text-lg font-bold text-blue-700 dark:text-blue-400">
                           ${newModelNewBaseFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                        <span className="font-semibold">Valor a Financiar:</span>
+                        <span className="text-lg font-bold text-purple-700 dark:text-purple-400">
+                          ${newModelFinancedAmount.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                         </span>
                       </div>
                       
