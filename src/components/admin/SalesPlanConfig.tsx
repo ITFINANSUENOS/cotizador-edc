@@ -1106,7 +1106,7 @@ const SalesPlanConfig = () => {
                                 </div>
                                 <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
                                   <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial Total</div>
-                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">${newModelInitialPercent}%</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${((newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)) + newModelAdditionalInitial).toLocaleString('es-CO', { maximumFractionDigits: 0 })} (${newModelInitialPercent.toFixed(1)}%)</div>
                                 </div>
                               </div>
                               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
