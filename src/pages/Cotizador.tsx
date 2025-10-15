@@ -18,6 +18,7 @@ const Cotizador = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [advisorName, setAdvisorName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   
   // Producto seleccionado y precios
@@ -94,6 +95,17 @@ const Cotizador = () => {
       } else {
         setUser(session.user);
         
+        // Get advisor name
+        const { data: advisorData } = await supabase
+          .from("advisors")
+          .select("full_name")
+          .eq("user_id", session.user.id)
+          .single();
+        
+        if (advisorData) {
+          setAdvisorName(advisorData.full_name);
+        }
+        
         // Check if user has admin role
         const { data: roleData } = await supabase
           .from("user_roles")
@@ -128,14 +140,6 @@ const Cotizador = () => {
     setProductPrices(prices);
     setQuote(null);
     setShowClientForm(false);
-    
-    // Para contado y convenio, calcular automáticamente
-    if (saleType === "contado" || saleType === "convenio") {
-      // Se calculará cuando el usuario seleccione la lista (para contado) o inmediatamente (para convenio)
-      if (saleType === "convenio") {
-        setTimeout(() => calculateQuote(), 100);
-      }
-    }
   };
 
   // Función para calcular tabla de amortización con sistema francés
@@ -454,28 +458,30 @@ const Cotizador = () => {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <div>
-              <CardTitle className="text-2xl text-primary">Cotizador Asesores EdC</CardTitle>
-              <CardDescription>
-                Asesor: {user?.email}
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              {isAdmin && (
-                <Button variant="outline" onClick={() => navigate("/admin")}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Panel Admin
+          <CardHeader className="space-y-4 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <CardTitle className="text-xl sm:text-2xl text-primary">Cotizador EdC</CardTitle>
+                <CardDescription className="mt-1">
+                  Asesor: {advisorName || user?.email}
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {isAdmin && (
+                  <Button variant="outline" size="sm" onClick={() => navigate("/admin")} className="flex-1 sm:flex-initial">
+                    <Settings className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Panel Admin</span>
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={() => setShowQuotesHistory(true)} className="flex-1 sm:flex-initial">
+                  <FileText className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Cotizaciones</span>
                 </Button>
-              )}
-              <Button variant="outline" onClick={() => setShowQuotesHistory(true)}>
-                <FileText className="w-4 h-4 mr-2" />
-                Cotizaciones
-              </Button>
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Cerrar Sesión
-              </Button>
+                <Button variant="outline" size="sm" onClick={handleSignOut} className="flex-1 sm:flex-initial">
+                  <LogOut className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Cerrar Sesión</span>
+                </Button>
+              </div>
             </div>
           </CardHeader>
         </Card>
@@ -494,11 +500,11 @@ const Cotizador = () => {
             </CardHeader>
             <CardContent>
               <Tabs value={saleType} onValueChange={(v) => handleSaleTypeChange(v as any)}>
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="contado">Contado</TabsTrigger>
-                  <TabsTrigger value="credicontado">CrediContado</TabsTrigger>
-                  <TabsTrigger value="credito">Crédito</TabsTrigger>
-                  <TabsTrigger value="convenio">Convenio</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+                  <TabsTrigger value="contado" className="text-xs sm:text-sm">Contado</TabsTrigger>
+                  <TabsTrigger value="credicontado" className="text-xs sm:text-sm">CrediContado</TabsTrigger>
+                  <TabsTrigger value="credito" className="text-xs sm:text-sm">Crédito</TabsTrigger>
+                  <TabsTrigger value="convenio" className="text-xs sm:text-sm">Convenio</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="contado" className="space-y-4 mt-4">
@@ -626,6 +632,9 @@ const Cotizador = () => {
                       Precio especial para convenios institucionales
                     </p>
                   </div>
+                  <Button onClick={calculateQuote} className="w-full mt-4">
+                    Calcular Cotización
+                  </Button>
                 </TabsContent>
               </Tabs>
 
