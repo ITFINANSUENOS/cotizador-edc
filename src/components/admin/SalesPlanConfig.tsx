@@ -694,7 +694,7 @@ const SalesPlanConfig = () => {
                         checked={newModelTermType === 'corto'}
                         onChange={(e) => {
                           setNewModelTermType(e.target.value as 'corto' | 'largo');
-                          setNewModelInstallments(e.target.value === 'corto' ? 3 : 9);
+                          setNewModelInstallments(3);
                           setNewModelAmortizationTable([]);
                         }}
                         className="w-4 h-4"
@@ -710,7 +710,7 @@ const SalesPlanConfig = () => {
                         checked={newModelTermType === 'largo'}
                         onChange={(e) => {
                           setNewModelTermType(e.target.value as 'corto' | 'largo');
-                          setNewModelInstallments(e.target.value === 'corto' ? 3 : 9);
+                          setNewModelInstallments(9);
                         }}
                         className="w-4 h-4"
                       />
@@ -719,37 +719,38 @@ const SalesPlanConfig = () => {
                   </div>
                 </div>
 
-                {newModelTermType && (
-                  <div className="grid gap-2">
-                    <Label htmlFor="newModelInstallments">No. Cuotas</Label>
-                    <Select 
-                      value={newModelInstallments.toString()} 
-                      onValueChange={(value) => setNewModelInstallments(parseInt(value))}
-                    >
-                      <SelectTrigger id="newModelInstallments">
-                        <SelectValue placeholder="Seleccione número de cuotas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {newModelTermType === 'corto' ? (
-                          <>
-                            <SelectItem value="3">3</SelectItem>
-                            <SelectItem value="4">4</SelectItem>
-                            <SelectItem value="5">5</SelectItem>
-                            <SelectItem value="6">6</SelectItem>
-                          </>
-                        ) : (
-                          <>
-                            <SelectItem value="9">9</SelectItem>
-                            <SelectItem value="11">11</SelectItem>
-                            <SelectItem value="12">12</SelectItem>
-                            <SelectItem value="14">14</SelectItem>
-                            <SelectItem value="17">17</SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div className="grid gap-2">
+                  <Label htmlFor="newModelInstallments">No. Cuotas</Label>
+                  <Select 
+                    value={newModelInstallments.toString()} 
+                    onValueChange={(value) => setNewModelInstallments(parseInt(value))}
+                    disabled={!newModelTermType}
+                  >
+                    <SelectTrigger id="newModelInstallments">
+                      <SelectValue placeholder="Seleccione número de cuotas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {newModelTermType === 'corto' ? (
+                        <>
+                          <SelectItem value="3">3</SelectItem>
+                          <SelectItem value="4">4</SelectItem>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="6">6</SelectItem>
+                        </>
+                      ) : newModelTermType === 'largo' ? (
+                        <>
+                          <SelectItem value="9">9</SelectItem>
+                          <SelectItem value="11">11</SelectItem>
+                          <SelectItem value="12">12</SelectItem>
+                          <SelectItem value="14">14</SelectItem>
+                          <SelectItem value="17">17</SelectItem>
+                        </>
+                      ) : (
+                        <SelectItem value="0">Seleccione un plazo primero</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {newModelTermType === 'largo' && (
