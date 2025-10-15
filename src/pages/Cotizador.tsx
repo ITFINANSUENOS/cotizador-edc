@@ -973,7 +973,7 @@ const Cotizador = () => {
                                   <td className="p-2 text-right">${row.principal.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
                                   <td className="p-2 text-right">${row.interest.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
                                   <td className="p-2 text-right">${row.aval.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
-                                  <td className="p-2 text-right font-bold">${(Math.ceil(row.payment / 1000) * 1000).toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                  <td className="p-2 text-right font-bold">${row.payment.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -1045,7 +1045,7 @@ const Cotizador = () => {
                                   <td className="p-2 text-right">${row.principal.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
                                   <td className="p-2 text-right">${row.interest.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
                                   <td className="p-2 text-right">${row.aval.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
-                                  <td className="p-2 text-right font-bold">${(Math.ceil(row.payment / 1000) * 1000).toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                  <td className="p-2 text-right font-bold">${row.payment.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                               ))}
                             </tbody>
