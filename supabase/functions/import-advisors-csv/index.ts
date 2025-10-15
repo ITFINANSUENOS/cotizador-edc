@@ -79,6 +79,35 @@ serve(async (req) => {
       // Create a temporary email for the advisor (they can update it later)
       const tempEmail = `asesor_${ccAsesor}@temporal.edc.com`
 
+      // Sanitize CSV inputs
+      const sanitizeValue = (value: string) => {
+        if (!value) return value;
+        const trimmed = value.trim();
+        // Remove formula injection characters
+        const dangerous = ['=', '+', '-', '@', '|'];
+        let sanitized = trimmed;
+        while (dangerous.includes(sanitized[0])) {
+          sanitized = sanitized.substring(1);
+        }
+        return sanitized;
+      };
+
+      const sanitizedNombre = sanitizeValue(nombreAsesor);
+      const sanitizedMovil = sanitizeValue(movilAsesor);
+
+      // Validate inputs
+      if (sanitizedNombre.length > 100) {
+        console.log(`Skipping line ${i}: Name too long`)
+        errors++
+        continue
+      }
+
+      if (sanitizedMovil && !/^[0-9\s\-+()]{7,20}$/.test(sanitizedMovil)) {
+        console.log(`Skipping line ${i}: Invalid phone format`)
+        errors++
+        continue
+      }
+
       try {
         // Check if advisor already exists by email
         const { data: existing } = await supabaseClient
@@ -92,52 +121,73 @@ serve(async (req) => {
           const { error: updateError } = await supabaseClient
             .from('advisors')
             .update({
-              full_name: nombreAsesor,
+              full_name: sanitizedNombre,
               advisor_code: codigoVendedor || null,
-              phone: movilAsesor || null,
-              sales_manager: jefeVentas !== 'N/A' ? jefeVentas : null,
-              zone_leader: liderZona || null,
-              regional: regionalVenta || null,
+              phone: sanitizedMovil || null,
+              sales_manager: jefeVentas !== 'N/A' ? sanitizeValue(jefeVentas) : null,
+              zone_leader: sanitizeValue(liderZona) || null,
+              regional: sanitizeValue(regionalVenta) || null,
             })
             .eq('id', existing.id)
 
           if (updateError) {
-            console.error(`Error updating advisor ${nombreAsesor}:`, updateError)
+            console.error(`Error updating advisor ${sanitizedNombre}:`, updateError)
             errors++
           } else {
             imported++
           }
         } else {
+          // Generate secure random password
+          const generateSecurePassword = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+            let password = '';
+            const array = new Uint8Array(16);
+            crypto.getRandomValues(array);
+            for (let i = 0; i < 16; i++) {
+              password += chars[array[i] % chars.length];
+            }
+            return password;
+          };
+
+          const tempPassword = generateSecurePassword();
+
           // Create new user account
           const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
             email: tempEmail,
-            password: `temp${ccAsesor}`, // Temporary password based on CC
-            email_confirm: true,
+            password: tempPassword,
+            email_confirm: false,
+            user_metadata: {
+              force_password_reset: true,
+              account_created_by_import: true,
+              document_id: ccAsesor
+            }
           })
 
           if (authError) {
-            console.error(`Error creating user for ${nombreAsesor}:`, authError)
+            console.error(`Error creating user for ${sanitizedNombre}:`, authError)
             errors++
             continue
           }
+
+          console.log(`Created advisor ${sanitizedNombre} with secure password. Email: ${tempEmail}`)
 
           // Create advisor profile
           const { error: advisorError } = await supabaseClient
             .from('advisors')
             .insert({
               user_id: authData.user.id,
-              full_name: nombreAsesor,
+              full_name: sanitizedNombre,
               email: tempEmail,
               advisor_code: codigoVendedor || null,
-              phone: movilAsesor || null,
-              sales_manager: jefeVentas !== 'N/A' ? jefeVentas : null,
-              zone_leader: liderZona || null,
-              regional: regionalVenta || null,
+              phone: sanitizedMovil || null,
+              sales_manager: jefeVentas !== 'N/A' ? sanitizeValue(jefeVentas) : null,
+              zone_leader: sanitizeValue(liderZona) || null,
+              regional: sanitizeValue(regionalVenta) || null,
               is_active: true,
             })
 
           if (advisorError) {
-            console.error(`Error creating advisor ${nombreAsesor}:`, advisorError)
+            console.error(`Error creating advisor ${sanitizedNombre}:`, advisorError)
             errors++
             continue
           }
@@ -151,13 +201,13 @@ serve(async (req) => {
             })
 
           if (roleError) {
-            console.error(`Error assigning role to ${nombreAsesor}:`, roleError)
+            console.error(`Error assigning role to ${sanitizedNombre}:`, roleError)
           }
 
           imported++
         }
       } catch (err) {
-        console.error(`Error processing advisor ${nombreAsesor}:`, err)
+        console.error(`Error processing advisor ${sanitizedNombre}:`, err)
         errors++
       }
     }

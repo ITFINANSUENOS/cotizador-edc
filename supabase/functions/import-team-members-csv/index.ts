@@ -51,11 +51,24 @@ serve(async (req) => {
     let errors = 0
     const errorMessages: string[] = []
 
+    // Sanitize CSV inputs
+    const sanitizeValue = (value: string) => {
+      if (!value) return value;
+      const trimmed = value.trim();
+      // Remove formula injection characters
+      const dangerous = ['=', '+', '-', '@', '|'];
+      let sanitized = trimmed;
+      while (dangerous.includes(sanitized[0])) {
+        sanitized = sanitized.substring(1);
+      }
+      return sanitized;
+    };
+
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim()
       if (!line) continue
 
-      const values = line.split(';').map((v: string) => v.trim())
+      const values = line.split(';').map((v: string) => sanitizeValue(v))
       
       const nombreCompleto = values[0]
       const cedula = values[1]

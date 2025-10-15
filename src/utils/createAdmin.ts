@@ -2,9 +2,15 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Script para crear un usuario administrador
+ * SOLO DISPONIBLE EN DESARROLLO
  * Ejecutar desde la consola del navegador después de registrarse
  */
 export const createAdminUser = async (email: string) => {
+  // Only allow in development mode
+  if (import.meta.env.PROD) {
+    console.error("❌ Esta función solo está disponible en modo desarrollo");
+    return;
+  }
   try {
     // Primero, obtener el user_id del email
     const { data: userData, error: userError } = await supabase.auth.getSession();
