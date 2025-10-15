@@ -48,12 +48,12 @@ const SalesPlanConfig = () => {
   const [newModelSeguro1, setNewModelSeguro1] = useState(4);
   const [newModelSeguro2Formula, setNewModelSeguro2Formula] = useState(0.17);
   const [clientTypeConfig, setClientTypeConfig] = useState<Record<string, { ci: number; fga: number }>>({
-    'AAA': { ci: 0, fga: 0 },
-    'AA': { ci: 0, fga: 0 },
-    'A': { ci: 0, fga: 0 },
-    'BBB': { ci: 0, fga: 0 },
-    'BB': { ci: 0, fga: 0 },
-    'B': { ci: 0, fga: 0 },
+    'AAA': { ci: 0, fga: 0.25 },
+    'AA': { ci: 0, fga: 0.25 },
+    'A': { ci: 5, fga: 0.50 },
+    'BBB': { ci: 5, fga: 0.50 },
+    'BB': { ci: 10, fga: 1.00 },
+    'B': { ci: 10, fga: 1.50 },
   });
 
   useEffect(() => {
