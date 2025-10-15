@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Save, Calculator, Settings } from "lucide-react";
+import { Save, Calculator, Settings, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
@@ -41,6 +42,11 @@ const SalesPlanConfig = () => {
   const [newModelTermType, setNewModelTermType] = useState<'corto' | 'largo'>('corto');
   const [newModelInstallments, setNewModelInstallments] = useState<number>(3);
   const [newModelClientType, setNewModelClientType] = useState<string>('AAA');
+  const [newModelMonthlyRate, setNewModelMonthlyRate] = useState(2.5);
+  const [newModelRetanqueoRate, setNewModelRetanqueoRate] = useState(1.60);
+  const [newModelTecAdm, setNewModelTecAdm] = useState(5);
+  const [newModelSeguro1, setNewModelSeguro1] = useState(4);
+  const [newModelSeguro2Formula, setNewModelSeguro2Formula] = useState(0.17);
   const [clientTypeConfig, setClientTypeConfig] = useState<Record<string, { ci: number; fga: number }>>({
     'AAA': { ci: 0, fga: 0 },
     'AA': { ci: 0, fga: 0 },
@@ -445,6 +451,106 @@ const SalesPlanConfig = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <TooltipProvider>
+                <div className="grid gap-3 md:grid-cols-5 text-sm">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="newModelMonthlyRate" className="text-xs">Tasa Int. Mensual (%)</Label>
+                    <Input
+                      id="newModelMonthlyRate"
+                      type="number"
+                      step="0.1"
+                      value={newModelMonthlyRate}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewModelMonthlyRate(val === '' ? 0 : parseFloat(val));
+                      }}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="newModelRetanqueoRate" className="text-xs">Tasa Int. Retanqueo (%)</Label>
+                    <Input
+                      id="newModelRetanqueoRate"
+                      type="number"
+                      step="0.01"
+                      value={newModelRetanqueoRate}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewModelRetanqueoRate(val === '' ? 0 : parseFloat(val));
+                      }}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="newModelTecAdm" className="text-xs">Tec/Adm (%)</Label>
+                    <Input
+                      id="newModelTecAdm"
+                      type="number"
+                      step="0.1"
+                      value={newModelTecAdm}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewModelTecAdm(val === '' ? 0 : parseFloat(val));
+                      }}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="newModelSeguro1" className="text-xs">Seguro 1 (%)</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">Seguro de Incapacidad</p>
+                          <p className="text-xs text-muted-foreground">Se aplica sobre el valor de la cuota</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Input
+                      id="newModelSeguro1"
+                      type="number"
+                      step="0.1"
+                      value={newModelSeguro1}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewModelSeguro1(val === '' ? 0 : parseFloat(val));
+                      }}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="newModelSeguro2" className="text-xs">Seguro 2</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs font-medium">Seguro Vida Deudor</p>
+                          <p className="text-xs text-muted-foreground">Fórmula: (Saldo Capital × {newModelSeguro2Formula}) / 1000</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Input
+                      id="newModelSeguro2"
+                      type="number"
+                      step="0.01"
+                      value={newModelSeguro2Formula}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewModelSeguro2Formula(val === '' ? 0 : parseFloat(val));
+                      }}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+              </TooltipProvider>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="newModelBasePrice">Precio Base</Label>
