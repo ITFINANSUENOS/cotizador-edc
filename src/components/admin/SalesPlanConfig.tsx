@@ -33,6 +33,9 @@ const SalesPlanConfig = () => {
   const [testTerm, setTestTerm] = useState(12);
   const [amortizationTable, setAmortizationTable] = useState<any[]>([]);
   const [testAmortizationType, setTestAmortizationType] = useState<'arpesod' | 'retanqueo'>('arpesod');
+  
+  // Nuevo Modelo Crédito
+  const [newModelBasePrice, setNewModelBasePrice] = useState(0);
 
   useEffect(() => {
     loadConfigs();
@@ -191,9 +194,10 @@ const SalesPlanConfig = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="credicontado">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="credicontado">Venta CrediContado</TabsTrigger>
           <TabsTrigger value="credito">Venta Crédito</TabsTrigger>
+          <TabsTrigger value="nuevomodelo">Nuevo Modelo Crédito</TabsTrigger>
         </TabsList>
 
         <TabsContent value="credicontado">
@@ -402,6 +406,33 @@ const SalesPlanConfig = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="nuevomodelo">
+          <Card>
+            <CardHeader>
+              <CardTitle>Nuevo Modelo de Crédito</CardTitle>
+              <CardDescription>
+                Realiza cálculos rápidos de amortización con parámetros personalizados
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="newModelBasePrice">Precio Base</Label>
+                  <Input
+                    id="newModelBasePrice"
+                    type="number"
+                    step="1000"
+                    min="0"
+                    value={newModelBasePrice}
+                    onChange={(e) => setNewModelBasePrice(parseFloat(e.target.value) || 0)}
+                    placeholder="Ingrese el precio base"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
