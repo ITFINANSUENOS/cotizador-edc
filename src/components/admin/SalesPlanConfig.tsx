@@ -51,6 +51,10 @@ const SalesPlanConfig = () => {
   const [newModelRateType, setNewModelRateType] = useState<'mensual' | 'retanqueo'>('mensual');
   const [newModelAmortizationTable, setNewModelAmortizationTable] = useState<any[]>([]);
   const [newModelAdditionalInitial, setNewModelAdditionalInitial] = useState(0);
+  const [newModelInitialPercent, setNewModelInitialPercent] = useState(0);
+  const [newModelDiscountPercent, setNewModelDiscountPercent] = useState(0);
+  const [newModelDiscountAmount, setNewModelDiscountAmount] = useState(0);
+  const [newModelNewBaseFS, setNewModelNewBaseFS] = useState(0);
   const [clientTypeConfig, setClientTypeConfig] = useState<Record<string, { ci: number; fga: number }>>({
     'AAA': { ci: 0, fga: 0.25 },
     'AA': { ci: 0, fga: 0.25 },
@@ -905,8 +909,15 @@ const SalesPlanConfig = () => {
                         }
                       }
                       
-                      // Calcular precio base con descuento
-                      const discountedPrice = basePrice * (1 - discountPercent / 100);
+                      // Calcular descuento y nueva base
+                      const discountAmount = basePrice * (discountPercent / 100);
+                      const discountedPrice = basePrice - discountAmount;
+                      
+                      // Guardar valores para mostrar en UI
+                      setNewModelInitialPercent(initialPercent);
+                      setNewModelDiscountPercent(discountPercent);
+                      setNewModelDiscountAmount(discountAmount);
+                      setNewModelNewBaseFS(discountedPrice);
                       const disbursedAmount = discountedPrice;
                       
                       // Usar tasa mensual para corto plazo
@@ -961,9 +972,23 @@ const SalesPlanConfig = () => {
                   {newModelAmortizationTable.length > 0 && (
                     <div className="space-y-4">
                       <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                        <span className="font-semibold">Cuota Inicial Total: ({clientTypeConfig[newModelClientType].ci}%)</span>
+                        <span className="font-semibold">Cuota Inicial Total: ({newModelInitialPercent.toFixed(1)}%)</span>
                         <span className="text-lg font-bold text-primary">
                           ${((newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)) + newModelAdditionalInitial).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                        <span className="font-semibold">Descuento: ({newModelDiscountPercent}%)</span>
+                        <span className="text-lg font-bold text-green-700 dark:text-green-400">
+                          ${newModelDiscountAmount.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                        <span className="font-semibold">Nueva base FS:</span>
+                        <span className="text-lg font-bold text-blue-700 dark:text-blue-400">
+                          ${newModelNewBaseFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                         </span>
                       </div>
                       
