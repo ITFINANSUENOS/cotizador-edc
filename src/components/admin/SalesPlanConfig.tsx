@@ -50,6 +50,7 @@ const SalesPlanConfig = () => {
   const [newModelSeguro2Formula, setNewModelSeguro2Formula] = useState(0.17);
   const [newModelRateType, setNewModelRateType] = useState<'mensual' | 'retanqueo'>('mensual');
   const [newModelAmortizationTable, setNewModelAmortizationTable] = useState<any[]>([]);
+  const [newModelAdditionalInitial, setNewModelAdditionalInitial] = useState(0);
   const [clientTypeConfig, setClientTypeConfig] = useState<Record<string, { ci: number; fga: number }>>({
     'AAA': { ci: 0, fga: 0.25 },
     'AA': { ci: 0, fga: 0.25 },
@@ -58,6 +59,14 @@ const SalesPlanConfig = () => {
     'BB': { ci: 10, fga: 1.00 },
     'B': { ci: 10, fga: 1.50 },
   });
+  
+  // Configuración de rangos de descuento para corto plazo
+  const [discountRanges, setDiscountRanges] = useState([
+    { minPercent: 65, maxPercent: 100, discount: 25 },
+    { minPercent: 50, maxPercent: 64.999, discount: 20 },
+    { minPercent: 40, maxPercent: 49.999, discount: 15 },
+    { minPercent: 30, maxPercent: 39.999, discount: 10 },
+  ]);
 
   useEffect(() => {
     loadConfigs();
@@ -679,6 +688,83 @@ const SalesPlanConfig = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
+
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="ml-2">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Descuentos Corto Plazo
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Configuración de Descuentos por Cuota Inicial (Corto Plazo)</DialogTitle>
+                        <DialogDescription>
+                          Define los rangos de porcentaje de cuota inicial y el descuento aplicable sobre el precio base
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>% Mínimo</TableHead>
+                              <TableHead>% Máximo</TableHead>
+                              <TableHead className="text-right">Descuento (%)</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {discountRanges.map((range, index) => (
+                              <TableRow key={index}>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    step="0.001"
+                                    min="0"
+                                    max="100"
+                                    value={range.minPercent}
+                                    onChange={(e) => {
+                                      const newRanges = [...discountRanges];
+                                      newRanges[index].minPercent = parseFloat(e.target.value) || 0;
+                                      setDiscountRanges(newRanges);
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    step="0.001"
+                                    min="0"
+                                    max="100"
+                                    value={range.maxPercent}
+                                    onChange={(e) => {
+                                      const newRanges = [...discountRanges];
+                                      newRanges[index].maxPercent = parseFloat(e.target.value) || 0;
+                                      setDiscountRanges(newRanges);
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    step="1"
+                                    min="0"
+                                    max="100"
+                                    value={range.discount}
+                                    onChange={(e) => {
+                                      const newRanges = [...discountRanges];
+                                      newRanges[index].discount = parseFloat(e.target.value) || 0;
+                                      setDiscountRanges(newRanges);
+                                    }}
+                                    className="text-right"
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
 
@@ -753,6 +839,232 @@ const SalesPlanConfig = () => {
                   </Select>
                 </div>
               </div>
+
+              {newModelTermType === 'corto' && (
+                <div className="space-y-6 p-4 border rounded-lg bg-muted/30">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label>Cuota Inicial (Mínima):</Label>
+                      <div className="p-3 bg-primary/10 rounded-lg">
+                        <span className="text-lg font-bold text-primary">
+                          ${(newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="additionalInitial">Cuota I. Adicional:</Label>
+                      <Input
+                        id="additionalInitial"
+                        type="number"
+                        min="0"
+                        value={newModelAdditionalInitial}
+                        onChange={(e) => setNewModelAdditionalInitial(parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={() => {
+                      if (!newModelBasePrice || newModelBasePrice <= 0) {
+                        toast.error("Por favor ingrese un Precio Base válido");
+                        return;
+                      }
+                      
+                      const basePrice = newModelBasePrice;
+                      const clientConfig = clientTypeConfig[newModelClientType];
+                      const minimumInitial = basePrice * (clientConfig.ci / 100);
+                      const totalInitial = minimumInitial + newModelAdditionalInitial;
+                      const initialPercent = (totalInitial / basePrice) * 100;
+                      
+                      // Determinar el descuento aplicable
+                      let discountPercent = 0;
+                      for (const range of discountRanges) {
+                        if (initialPercent >= range.minPercent && initialPercent <= range.maxPercent) {
+                          discountPercent = range.discount;
+                          break;
+                        }
+                      }
+                      
+                      // Calcular precio base con descuento
+                      const discountedPrice = basePrice * (1 - discountPercent / 100);
+                      const disbursedAmount = discountedPrice;
+                      
+                      // Usar tasa mensual para corto plazo
+                      const interestRate = newModelMonthlyRate / 100;
+                      const tecAdmPerMonth = (discountedPrice * (newModelTecAdm / 100)) / newModelInstallments;
+                      const fgaPerMonth = discountedPrice * (clientConfig.fga / 100);
+                      
+                      // Calcular cuota base usando sistema francés
+                      const r = interestRate;
+                      const n = newModelInstallments;
+                      const fixedPaymentWithoutExtras = disbursedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+                      
+                      let balance = disbursedAmount;
+                      const table = [];
+                      
+                      for (let i = 1; i <= newModelInstallments; i++) {
+                        const interest = balance * interestRate;
+                        const principal = fixedPaymentWithoutExtras - interest;
+                        
+                        const seguro1 = fixedPaymentWithoutExtras * (newModelSeguro1 / 100);
+                        const seguro2 = (balance * newModelSeguro2Formula) / 1000;
+                        
+                        const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1 + seguro2;
+                        
+                        table.push({
+                          month: i,
+                          balance: balance,
+                          principal: principal,
+                          interest: interest,
+                          tecAdm: tecAdmPerMonth,
+                          fga: fgaPerMonth,
+                          seguro1: seguro1,
+                          seguro2: seguro2,
+                          payment: totalPayment
+                        });
+                        
+                        balance -= principal;
+                      }
+                      
+                      setNewModelAmortizationTable(table);
+                      
+                      if (discountPercent > 0) {
+                        toast.success(`Descuento del ${discountPercent}% aplicado. Cuota inicial: ${initialPercent.toFixed(2)}%`);
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <Calculator className="w-4 h-4 mr-2" />
+                    Calcular Amortización
+                  </Button>
+
+                  {newModelAmortizationTable.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
+                        <span className="font-semibold">Cuota Inicial Total: ({clientTypeConfig[newModelClientType].ci}%)</span>
+                        <span className="text-lg font-bold text-primary">
+                          ${((newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)) + newModelAdditionalInitial).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-accent/10 rounded-lg">
+                        <span className="font-semibold">Cuota Mensual:</span>
+                        <span className="text-lg font-bold text-accent">
+                          ${Math.ceil(newModelAmortizationTable[0]?.payment / 1000) * 1000}
+                        </span>
+                      </div>
+
+                      <div id="amortization-table-container" className="rounded-md border overflow-auto max-h-96 bg-background">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs font-bold whitespace-nowrap">Mes</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Saldo</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Capital</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Interés</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Tec/Adm</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">FGA</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Seg. 1</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Seg. 2</TableHead>
+                              <TableHead className="text-xs font-bold text-right whitespace-nowrap">Cuota</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {newModelAmortizationTable.map((row) => (
+                              <TableRow key={row.month}>
+                                <TableCell className="text-xs">{row.month}</TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.balance.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.principal.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.interest.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.tecAdm.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.fga.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.seguro1.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  ${row.seguro2.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs text-right font-medium">
+                                  ${row.payment.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow className="bg-muted/50 font-bold">
+                              <TableCell className="text-xs font-bold" colSpan={3}>TOTAL</TableCell>
+                              <TableCell className="text-xs text-right font-bold">
+                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.interest, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold">
+                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.tecAdm, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold">
+                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.fga, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold">
+                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.seguro1, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold">
+                                ${newModelAmortizationTable.reduce((sum, row) => sum + row.seguro2, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold"></TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                      
+                      <Button 
+                        onClick={async () => {
+                          const element = document.getElementById('amortization-table-container');
+                          if (!element) return;
+                          
+                          try {
+                            const originalMaxHeight = element.style.maxHeight;
+                            const originalOverflow = element.style.overflow;
+                            element.style.maxHeight = 'none';
+                            element.style.overflow = 'visible';
+                            
+                            const canvas = await html2canvas(element, {
+                              backgroundColor: '#ffffff',
+                              scale: 2,
+                              windowHeight: element.scrollHeight
+                            });
+                            
+                            element.style.maxHeight = originalMaxHeight;
+                            element.style.overflow = originalOverflow;
+                            
+                            const link = document.createElement('a');
+                            link.download = `amortizacion-${new Date().toISOString().split('T')[0]}.png`;
+                            link.href = canvas.toDataURL();
+                            link.click();
+                            
+                            toast.success("Tabla descargada exitosamente");
+                          } catch (error) {
+                            console.error('Error al descargar:', error);
+                            toast.error("Error al descargar la tabla");
+                          }
+                        }}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Descargar Tabla como Imagen
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {newModelTermType === 'largo' && (
                 <div className="space-y-6 p-4 border rounded-lg bg-muted/30">
