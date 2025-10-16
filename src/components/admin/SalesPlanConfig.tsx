@@ -179,6 +179,8 @@ const SalesPlanConfig = () => {
 
   const calculateAmortization = () => {
     let capital = testCapital;
+    // Determinar tasa según el tipo seleccionado en radio button
+    // "Crédito Arpesod" usa monthlyInterestRate, "Retanqueo FS" usa retanqueoInterestRate
     const interestRate = testAmortizationType === 'arpesod' ? monthlyInterestRate : retanqueoInterestRate;
     let monthlyRate = interestRate / 100;
     const avalRate = avalCobrador / 100;
@@ -259,14 +261,15 @@ const SalesPlanConfig = () => {
         setTestAdjustedBasePrice(capital);
       }
     } else if (testAmortizationType === 'retanqueo') {
-      // Lógica para Retanqueo FS
+      // Lógica para cuando el radio button "Retanqueo FS" está seleccionado
+      // Esto ya usa automáticamente retanqueoInterestRate (línea 184)
+      
       if (testRetanqueoFS && testSaldoFinansuenos > 0) {
-        // Retanqueo FS a FS
+        // Checkbox "Retanqueo FS a FS": suma el saldo de FinanSueños al capital
         capital = originalCapital + testSaldoFinansuenos;
         setTestAdjustedBasePrice(capital);
-        // Ya está usando la tasa de retanqueo por el tipo de amortización
       } else if (testInicialMayor && testInicialMayorValue > 0) {
-        // Inicial Mayor con retanqueo
+        // Inicial Mayor con tasa de retanqueo
         const roundedOriginalPayment = Math.ceil(originalPayment / 1000) * 1000;
         
         if (testInicialMayorValue < roundedOriginalPayment) {
