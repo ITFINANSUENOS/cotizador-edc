@@ -928,8 +928,8 @@ const SalesPlanConfig = () => {
                       // 7. Calcular valor FINAL a financiar = Nueva Base FS - Cuota Inicial Total
                       const financedAmount = discountedPrice - newModelTotalInitial;
                       
-                      // 8. Calcular % real de la Cuota Inicial Total sobre Nueva Base FS
-                      const totalInitialPercent = (newModelTotalInitial / discountedPrice) * 100;
+                      // 8. Calcular % de la Cuota Inicial Total sobre Precio Base
+                      const totalInitialPercent = (newModelTotalInitial / basePrice) * 100;
                       
                       // Guardar valores calculados para mostrar en UI
                       setNewModelInitialPercent(totalInitialPercent);
