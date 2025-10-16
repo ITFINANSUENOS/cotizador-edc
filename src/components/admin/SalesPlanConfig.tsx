@@ -38,6 +38,16 @@ const SalesPlanConfig = () => {
   const [amortizationTable, setAmortizationTable] = useState<any[]>([]);
   const [testAmortizationType, setTestAmortizationType] = useState<'arpesod' | 'retanqueo'>('arpesod');
   
+  // Estados para simulaciones en Venta Crédito
+  const [testInicialMayor, setTestInicialMayor] = useState(false);
+  const [testInicialMayorValue, setTestInicialMayorValue] = useState(0);
+  const [testRetanqueoEdC, setTestRetanqueoEdC] = useState(false);
+  const [testSaldoArpesod, setTestSaldoArpesod] = useState(0);
+  const [testRetanqueoFS, setTestRetanqueoFS] = useState(false);
+  const [testSaldoFinansuenos, setTestSaldoFinansuenos] = useState(0);
+  const [testAdjustedBasePrice, setTestAdjustedBasePrice] = useState(0);
+  const [testOriginalMonthlyPayment, setTestOriginalMonthlyPayment] = useState(0);
+  
   // Nuevo Modelo Crédito
   const [newModelBasePrice, setNewModelBasePrice] = useState(0);
   const [newModelTermType, setNewModelTermType] = useState<'corto' | 'largo' | ''>('');
@@ -131,6 +141,15 @@ const SalesPlanConfig = () => {
   const handleAmortizationTypeChange = (type: 'arpesod' | 'retanqueo') => {
     setTestAmortizationType(type);
     setAmortizationTable([]);
+    // Resetear simulaciones
+    setTestInicialMayor(false);
+    setTestInicialMayorValue(0);
+    setTestRetanqueoEdC(false);
+    setTestSaldoArpesod(0);
+    setTestRetanqueoFS(false);
+    setTestSaldoFinansuenos(0);
+    setTestAdjustedBasePrice(0);
+    setTestOriginalMonthlyPayment(0);
   };
 
   const handlePercentageChange = (installment: number, value: string) => {
@@ -159,11 +178,107 @@ const SalesPlanConfig = () => {
   };
 
   const calculateAmortization = () => {
-    const capital = testCapital;
+    let capital = testCapital;
     const interestRate = testAmortizationType === 'arpesod' ? monthlyInterestRate : retanqueoInterestRate;
-    const monthlyRate = interestRate / 100;
+    let monthlyRate = interestRate / 100;
     const avalRate = avalCobrador / 100;
     const term = testTerm;
+    
+    const originalCapital = testCapital;
+    
+    // Calcular cuota original con el capital original
+    const r_original = monthlyRate;
+    const n_original = term;
+    const onePlusR_original = 1 + r_original;
+    const onePlusRtoN_original = Math.pow(onePlusR_original, n_original);
+    const baseMonthlyPayment_original = originalCapital * (r_original * onePlusRtoN_original) / (onePlusRtoN_original - 1);
+    const avalPayment_original = originalCapital * avalRate;
+    const originalPayment = baseMonthlyPayment_original + avalPayment_original;
+    
+    setTestOriginalMonthlyPayment(originalPayment);
+    
+    // Aplicar lógica según las opciones seleccionadas
+    if (testAmortizationType === 'arpesod') {
+      // Lógica para Crédito Arpesod
+      if (testRetanqueoEdC && testSaldoArpesod > 0) {
+        // Retanqueo EdC a FS
+        const currentMonthlyPayment = Math.ceil(originalPayment / 1000) * 1000;
+        const pagoTotal = currentMonthlyPayment * term;
+        const nuevoTotal = pagoTotal + testSaldoArpesod;
+        const nuevaCuotaSinRedondear = nuevoTotal / term;
+        const nuevaCuotaObjetivo = Math.ceil(nuevaCuotaSinRedondear / 1000) * 1000;
+        
+        // Función auxiliar para calcular la cuota mensual SIN redondear dada una base
+        const calcularCuotaSinRedondear = (base: number): number => {
+          const r = monthlyRate;
+          const n = term;
+          const fixedPaymentWithoutAval = base * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+          const avalFijo = base * avalRate;
+          return fixedPaymentWithoutAval + avalFijo;
+        };
+        
+        // Buscar la base cuya cuota sin redondear sea más cercana al objetivo
+        let mejorBase = originalCapital;
+        let menorDiferencia = Infinity;
+        
+        const baseMin = Math.max(originalCapital, nuevoTotal * 0.5);
+        const baseMax = nuevoTotal * 1.5;
+        
+        for (let base = baseMin; base <= baseMax; base += 1000) {
+          const cuotaSinRedondear = calcularCuotaSinRedondear(base);
+          const cuotaRedondeada = Math.ceil(cuotaSinRedondear / 1000) * 1000;
+          
+          if (cuotaRedondeada >= nuevaCuotaObjetivo) {
+            const diferencia = Math.abs(cuotaSinRedondear - nuevaCuotaObjetivo);
+            
+            if (diferencia < menorDiferencia) {
+              menorDiferencia = diferencia;
+              mejorBase = base;
+            }
+            
+            if (diferencia < 100) {
+              break;
+            }
+          }
+        }
+        
+        const nuevaBase = Math.round(mejorBase / 1000) * 1000;
+        capital = nuevaBase;
+        setTestAdjustedBasePrice(nuevaBase);
+      } else if (testInicialMayor && testInicialMayorValue > 0) {
+        // Inicial Mayor
+        const roundedOriginalPayment = Math.ceil(originalPayment / 1000) * 1000;
+        
+        if (testInicialMayorValue < roundedOriginalPayment) {
+          toast.error(`La inicial mayor debe ser al menos $${roundedOriginalPayment.toLocaleString()}`);
+          return;
+        }
+        
+        const excess = testInicialMayorValue - roundedOriginalPayment;
+        capital = originalCapital - excess;
+        setTestAdjustedBasePrice(capital);
+      }
+    } else if (testAmortizationType === 'retanqueo') {
+      // Lógica para Retanqueo FS
+      if (testRetanqueoFS && testSaldoFinansuenos > 0) {
+        // Retanqueo FS a FS
+        capital = originalCapital + testSaldoFinansuenos;
+        setTestAdjustedBasePrice(capital);
+        // Ya está usando la tasa de retanqueo por el tipo de amortización
+      } else if (testInicialMayor && testInicialMayorValue > 0) {
+        // Inicial Mayor con retanqueo
+        const roundedOriginalPayment = Math.ceil(originalPayment / 1000) * 1000;
+        
+        if (testInicialMayorValue < roundedOriginalPayment) {
+          toast.error(`La inicial mayor debe ser al menos $${roundedOriginalPayment.toLocaleString()}`);
+          return;
+        }
+        
+        const excess = testInicialMayorValue - roundedOriginalPayment;
+        capital = originalCapital - excess;
+        setTestAdjustedBasePrice(capital);
+      }
+    }
     
     // Calcular cuota base usando método francés (cuota fija)
     // PMT = P × (r × (1+r)^n) / ((1+r)^n - 1)
@@ -173,7 +288,7 @@ const SalesPlanConfig = () => {
     const onePlusRtoN = Math.pow(onePlusR, n);
     const baseMonthlyPayment = capital * (r * onePlusRtoN) / (onePlusRtoN - 1);
     
-    // Aval fijo mensual (porcentaje del capital original)
+    // Aval fijo mensual (porcentaje del capital ajustado)
     const avalPayment = capital * avalRate;
     
     const table = [];
@@ -424,48 +539,156 @@ const SalesPlanConfig = () => {
                   </div>
                 </div>
 
+                {/* Opciones de simulación */}
+                <div className="space-y-4 border-t pt-4">
+                  <Label className="text-base font-semibold">Opciones de Simulación</Label>
+                  
+                  {/* Cuota Inicial Mayor */}
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="testInicialMayor"
+                        checked={testInicialMayor}
+                        onCheckedChange={(checked) => setTestInicialMayor(checked as boolean)}
+                      />
+                      <Label htmlFor="testInicialMayor" className="cursor-pointer">Cuota Inicial Mayor</Label>
+                    </div>
+                    {testInicialMayor && (
+                      <Input
+                        type="number"
+                        placeholder="Valor de la cuota inicial mayor"
+                        value={testInicialMayorValue || ''}
+                        onChange={(e) => setTestInicialMayorValue(parseFloat(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
+                      />
+                    )}
+                  </div>
+
+                  {/* Retanqueo EdC a FS - solo visible en modo Arpesod */}
+                  {testAmortizationType === 'arpesod' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="testRetanqueoEdC"
+                          checked={testRetanqueoEdC}
+                          onCheckedChange={(checked) => {
+                            setTestRetanqueoEdC(checked as boolean);
+                            if (checked) {
+                              setTestRetanqueoFS(false);
+                              setTestSaldoFinansuenos(0);
+                            }
+                          }}
+                        />
+                        <Label htmlFor="testRetanqueoEdC" className="cursor-pointer">Retanqueo EdC a FS</Label>
+                      </div>
+                      {testRetanqueoEdC && (
+                        <Input
+                          type="number"
+                          placeholder="Saldo Arpesod"
+                          value={testSaldoArpesod || ''}
+                          onChange={(e) => setTestSaldoArpesod(parseFloat(e.target.value) || 0)}
+                          onFocus={(e) => e.target.select()}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Retanqueo FS a FS - solo visible en modo Retanqueo */}
+                  {testAmortizationType === 'retanqueo' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="testRetanqueoFS"
+                          checked={testRetanqueoFS}
+                          onCheckedChange={(checked) => {
+                            setTestRetanqueoFS(checked as boolean);
+                            if (checked) {
+                              setTestRetanqueoEdC(false);
+                              setTestSaldoArpesod(0);
+                            }
+                          }}
+                        />
+                        <Label htmlFor="testRetanqueoFS" className="cursor-pointer">Retanqueo FS a FS</Label>
+                      </div>
+                      {testRetanqueoFS && (
+                        <Input
+                          type="number"
+                          placeholder="Saldo FinanSueños"
+                          value={testSaldoFinansuenos || ''}
+                          onChange={(e) => setTestSaldoFinansuenos(parseFloat(e.target.value) || 0)}
+                          onFocus={(e) => e.target.select()}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <Button onClick={calculateAmortization} variant="outline" className="w-full">
                   <Calculator className="w-4 h-4 mr-2" />
                   Calcular Tabla de Amortización
                 </Button>
 
                 {amortizationTable.length > 0 && (
-                  <div className="rounded-md border overflow-auto max-h-96">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="text-xs sm:text-sm whitespace-nowrap">Mes</TableHead>
-                            <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Capital</TableHead>
-                            <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Interés</TableHead>
-                            <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Aval</TableHead>
-                            <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Total</TableHead>
-                            <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Saldo</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {amortizationTable.map((row) => (
-                            <TableRow key={row.month}>
-                              <TableCell className="text-xs sm:text-sm">{row.month}</TableCell>
-                              <TableCell className="text-xs sm:text-sm text-right">
-                                ${row.capital.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                              </TableCell>
-                              <TableCell className="text-xs sm:text-sm text-right">
-                                ${row.interest.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                              </TableCell>
-                              <TableCell className="text-xs sm:text-sm text-right">
-                                ${row.aval.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                              </TableCell>
-                              <TableCell className="text-xs sm:text-sm text-right font-medium">
-                                ${row.total.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                              </TableCell>
-                              <TableCell className="text-xs sm:text-sm text-right text-muted-foreground">
-                                ${row.remainingCapital.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                              </TableCell>
+                  <div className="space-y-4">
+                    {/* Información de la simulación */}
+                    {(testInicialMayor || testRetanqueoEdC || testRetanqueoFS) && (
+                      <div className="p-4 bg-muted rounded-lg space-y-2 text-sm">
+                        <p className="font-semibold">Información de Simulación:</p>
+                        {testOriginalMonthlyPayment > 0 && (
+                          <p>Cuota Original: ${Math.ceil(testOriginalMonthlyPayment / 1000) * 1000}</p>
+                        )}
+                        {testInicialMayor && testInicialMayorValue > 0 && (
+                          <p>Cuota Inicial Mayor: ${testInicialMayorValue.toLocaleString()}</p>
+                        )}
+                        {testRetanqueoEdC && testSaldoArpesod > 0 && (
+                          <p>Retanqueo EdC a FS - Saldo: ${testSaldoArpesod.toLocaleString()}</p>
+                        )}
+                        {testRetanqueoFS && testSaldoFinansuenos > 0 && (
+                          <p>Retanqueo FS a FS - Saldo: ${testSaldoFinansuenos.toLocaleString()}</p>
+                        )}
+                        {testAdjustedBasePrice > 0 && testAdjustedBasePrice !== testCapital && (
+                          <p>Base Ajustada: ${testAdjustedBasePrice.toLocaleString()}</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="rounded-md border overflow-auto max-h-96">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap">Mes</TableHead>
+                              <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Capital</TableHead>
+                              <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Interés</TableHead>
+                              <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Aval</TableHead>
+                              <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Total</TableHead>
+                              <TableHead className="text-xs sm:text-sm text-right whitespace-nowrap">Saldo</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {amortizationTable.map((row) => (
+                              <TableRow key={row.month}>
+                                <TableCell className="text-xs sm:text-sm">{row.month}</TableCell>
+                                <TableCell className="text-xs sm:text-sm text-right">
+                                  ${row.capital.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm text-right">
+                                  ${row.interest.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm text-right">
+                                  ${row.aval.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm text-right font-medium">
+                                  ${row.total.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm text-right text-muted-foreground">
+                                  ${row.remainingCapital.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   </div>
                 )}
