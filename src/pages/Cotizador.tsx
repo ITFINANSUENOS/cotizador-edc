@@ -26,13 +26,19 @@ const Cotizador = () => {
   const [productPrices, setProductPrices] = useState<any>(null);
   
   // Tipo de venta
-  const [saleType, setSaleType] = useState<"contado" | "credicontado" | "credito" | "convenio">("contado");
+  const [saleType, setSaleType] = useState<"contado" | "credicontado" | "credito" | "convenio" | "creditofs">("contado");
   const [installments, setInstallments] = useState(1);
   const [initialPayment, setInitialPayment] = useState(0);
   const [selectedList, setSelectedList] = useState<1 | 2 | 3 | 4>(1); // Para contado
   
+  // Crédito FS (Nuevo Modelo)
+  const [creditoFSTermType, setCreditoFSTermType] = useState<'corto' | 'largo' | ''>('');
+  const [creditoFSClientType, setCreditoFSClientType] = useState<string>('AAA');
+  const [creditoFSTotalInitial, setCreditoFSTotalInitial] = useState(0);
+  const [creditoFSRateType, setCreditoFSRateType] = useState<'mensual' | 'retanqueo'>('mensual');
+  
   // Resetear valores cuando cambia el tipo de venta
-  const handleSaleTypeChange = (newType: "contado" | "credicontado" | "credito" | "convenio") => {
+  const handleSaleTypeChange = (newType: "contado" | "credicontado" | "credito" | "convenio" | "creditofs") => {
     setSaleType(newType);
     setInitialPayment(0);
     setQuote(null);
@@ -50,6 +56,8 @@ const Cotizador = () => {
     setClientName("");
     setClientId("");
     setClientPhone("");
+    setCreditoFSTermType('');
+    setCreditoFSTotalInitial(0);
     
     if (newType === "contado") {
       setInstallments(1);
@@ -60,6 +68,9 @@ const Cotizador = () => {
       setInstallments(9);
     } else if (newType === "convenio") {
       setInstallments(1);
+    } else if (newType === "creditofs") {
+      setInstallments(3);
+      setCreditoFSTermType('corto');
     }
   };
   
@@ -224,7 +235,7 @@ const Cotizador = () => {
     return schedule;
   };
 
-  const calculateQuote = () => {
+  const calculateQuote = async () => {
     if (!selectedProduct || !productPrices || productPrices.length === 0) {
       toast.error("Por favor selecciona un producto con precios disponibles");
       return;
@@ -439,6 +450,121 @@ const Cotizador = () => {
         remainingBalance = basePrice;
         monthlyPayment = basePrice;
         break;
+      
+      case "creditofs":
+        // Nuevo Modelo de Crédito FS
+        const basePriceFS = Number(priceData.credit_price || priceData.list_1_price);
+        basePrice = basePriceFS;
+        
+        // Configuración de tipos de cliente (igual que en SalesPlanConfig)
+        const clientTypeConfig: Record<string, { ci: number; fga: number }> = {
+          'AAA': { ci: 0, fga: 0.25 },
+          'AA': { ci: 0, fga: 0.25 },
+          'A': { ci: 5, fga: 0.50 },
+          'BBB': { ci: 5, fga: 0.50 },
+          'BB': { ci: 10, fga: 1.00 },
+          'B': { ci: 10, fga: 1.50 },
+        };
+        
+        const clientConfig = clientTypeConfig[creditoFSClientType];
+        
+        // Cargar configuraciones desde Supabase
+        const { data: fsConfigData } = await supabase
+          .from("sales_plan_config")
+          .select("config")
+          .eq("plan_type", "credito")
+          .single();
+        
+        const monthlyRate = (fsConfigData?.config as any)?.monthly_interest_rate || 2.5;
+        const retanqueoRate = (fsConfigData?.config as any)?.retanqueo_interest_rate || 1.60;
+        const tecAdm = 5; // Valor por defecto
+        const seguro1 = 4; // Valor por defecto
+        const seguro2Formula = 0.17; // Valor por defecto
+        
+        if (creditoFSTermType === 'corto') {
+          // Lógica para corto plazo
+          if (creditoFSTotalInitial <= 0) {
+            toast.error("Por favor ingrese una cuota inicial válida");
+            return;
+          }
+          
+          // Rangos de descuento por defecto
+          const discountRanges = [
+            { minPercent: 65, maxPercent: 100, discount: 25 },
+            { minPercent: 50, maxPercent: 64.999, discount: 20 },
+            { minPercent: 40, maxPercent: 49.999, discount: 15 },
+            { minPercent: 30, maxPercent: 39.999, discount: 10 },
+          ];
+          
+          // 1. Calcular % que representa la cuota inicial sobre el precio base
+          const initialPercent = (creditoFSTotalInitial / basePriceFS) * 100;
+          
+          // 2. Determinar descuento aplicable
+          let discountPercent = 0;
+          for (const range of discountRanges) {
+            if (initialPercent >= range.minPercent && initialPercent <= range.maxPercent) {
+              discountPercent = range.discount;
+              break;
+            }
+          }
+          
+          // 3. Calcular descuento y Nueva Base FS
+          const discountAmount = basePriceFS * (discountPercent / 100);
+          const discountedPrice = basePriceFS - discountAmount;
+          
+          // 4. Restar cuota inicial = Valor PRELIMINAR a financiar
+          const preliminaryFinancedAmount = discountedPrice - creditoFSTotalInitial;
+          
+          // 5. Calcular Fondo según tipo de cliente
+          const minimumInitial = preliminaryFinancedAmount * (clientConfig.ci / 100);
+          
+          // 6. Cuota Inicial Total = Fondo + Adicional
+          const additionalInitial = creditoFSTotalInitial - minimumInitial;
+          
+          // 7. Valor FINAL a financiar
+          const financedAmount = discountedPrice - creditoFSTotalInitial;
+          
+          // Usar tasa mensual para corto plazo
+          const interestRate = monthlyRate / 100;
+          const tecAdmPerMonth = (discountedPrice * (tecAdm / 100)) / installments;
+          const fgaPerMonth = discountedPrice * (clientConfig.fga / 100);
+          
+          // Calcular cuota base usando sistema francés
+          const r = interestRate;
+          const n = installments;
+          const fixedPaymentWithoutExtras = financedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+          
+          const seguro1Value = fixedPaymentWithoutExtras * (seguro1 / 100);
+          const seguro2Value = (financedAmount * seguro2Formula) / 1000;
+          
+          monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Value + seguro2Value;
+          basePrice = discountedPrice;
+          totalPrice = discountedPrice;
+          remainingBalance = financedAmount;
+          setInitialPayment(creditoFSTotalInitial);
+          
+        } else if (creditoFSTermType === 'largo') {
+          // Lógica para largo plazo
+          const initialPaymentCalc = basePriceFS * (clientConfig.ci / 100);
+          setInitialPayment(initialPaymentCalc);
+          
+          const interestRate = creditoFSRateType === 'mensual' ? monthlyRate / 100 : retanqueoRate / 100;
+          const tecAdmPerMonth = (basePriceFS * (tecAdm / 100)) / installments;
+          const fgaPerMonth = basePriceFS * (clientConfig.fga / 100);
+          
+          // Calcular cuota base usando sistema francés
+          const r = interestRate;
+          const n = installments;
+          const fixedPaymentWithoutExtras = basePriceFS * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+          
+          const seguro1Value = fixedPaymentWithoutExtras * (seguro1 / 100);
+          const seguro2Value = (basePriceFS * seguro2Formula) / 1000;
+          
+          monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Value + seguro2Value;
+          totalPrice = basePriceFS;
+          remainingBalance = basePriceFS;
+        }
+        break;
     }
 
     setQuote({
@@ -459,7 +585,7 @@ const Cotizador = () => {
     });
 
     // Mostrar formulario de cliente según el tipo de venta
-    if (saleType === "contado" || saleType === "convenio" || saleType === "credicontado" || saleType === "credito") {
+    if (saleType === "contado" || saleType === "convenio" || saleType === "credicontado" || saleType === "credito" || saleType === "creditofs") {
       setShowClientForm(true);
     }
   };
@@ -593,10 +719,11 @@ const Cotizador = () => {
             </CardHeader>
             <CardContent>
               <Tabs value={saleType} onValueChange={(v) => handleSaleTypeChange(v as any)}>
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="contado" className="text-[10px] sm:text-sm px-1 sm:px-3">Contado</TabsTrigger>
                   <TabsTrigger value="credicontado" className="text-[10px] sm:text-sm px-1 sm:px-3">CrediContado</TabsTrigger>
                   <TabsTrigger value="credito" className="text-[10px] sm:text-sm px-1 sm:px-3">Crédito</TabsTrigger>
+                  <TabsTrigger value="creditofs" className="text-[10px] sm:text-sm px-1 sm:px-3">Crédito FS</TabsTrigger>
                   <TabsTrigger value="convenio" className="text-[10px] sm:text-sm px-1 sm:px-3">Convenio</TabsTrigger>
                 </TabsList>
 
@@ -719,6 +846,154 @@ const Cotizador = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                </TabsContent>
+
+                <TabsContent value="creditofs" className="space-y-4 mt-4">
+                  <div className="p-4 bg-accent/10 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Base FINANSUEÑOS:</span>
+                      <span className="text-xl font-bold text-primary">
+                        ${Number(productPrices[0].credit_price || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Nuevo modelo de crédito con tasas y seguros
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Plazo</Label>
+                    <div className="flex gap-4 items-center">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="fs-corto"
+                          name="fsTermType"
+                          value="corto"
+                          checked={creditoFSTermType === 'corto'}
+                          onChange={(e) => {
+                            setCreditoFSTermType(e.target.value as 'corto' | 'largo');
+                            setInstallments(3);
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="fs-corto" className="cursor-pointer text-sm">Corto Plazo</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="fs-largo"
+                          name="fsTermType"
+                          value="largo"
+                          checked={creditoFSTermType === 'largo'}
+                          onChange={(e) => {
+                            setCreditoFSTermType(e.target.value as 'corto' | 'largo');
+                            setInstallments(9);
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="fs-largo" className="cursor-pointer text-sm">Largo Plazo</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {creditoFSTermType && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>No. Cuotas</Label>
+                        <Select 
+                          value={installments.toString()} 
+                          onValueChange={(value) => setInstallments(parseInt(value))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccione número de cuotas" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {creditoFSTermType === 'corto' ? (
+                              <>
+                                <SelectItem value="3">3 cuotas</SelectItem>
+                                <SelectItem value="4">4 cuotas</SelectItem>
+                                <SelectItem value="5">5 cuotas</SelectItem>
+                                <SelectItem value="6">6 cuotas</SelectItem>
+                              </>
+                            ) : (
+                              <>
+                                <SelectItem value="9">9 cuotas</SelectItem>
+                                <SelectItem value="11">11 cuotas</SelectItem>
+                                <SelectItem value="12">12 cuotas</SelectItem>
+                                <SelectItem value="14">14 cuotas</SelectItem>
+                                <SelectItem value="17">17 cuotas</SelectItem>
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Tipo Cliente</Label>
+                        <Select value={creditoFSClientType} onValueChange={setCreditoFSClientType}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccione tipo de cliente" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AAA">AAA</SelectItem>
+                            <SelectItem value="AA">AA</SelectItem>
+                            <SelectItem value="A">A</SelectItem>
+                            <SelectItem value="BBB">BBB</SelectItem>
+                            <SelectItem value="BB">BB</SelectItem>
+                            <SelectItem value="B">B</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {creditoFSTermType === 'corto' && (
+                        <div className="space-y-2">
+                          <Label>Cuota Inicial Total</Label>
+                          <Input
+                            type="number"
+                            step="1000"
+                            min="0"
+                            value={creditoFSTotalInitial || ''}
+                            onChange={(e) => setCreditoFSTotalInitial(parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
+                            placeholder="Ingrese la cuota inicial total en pesos"
+                          />
+                        </div>
+                      )}
+
+                      {creditoFSTermType === 'largo' && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Tasa de Interés</Label>
+                          <div className="flex gap-4 items-center">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="fs-mensual"
+                                name="fsRateType"
+                                value="mensual"
+                                checked={creditoFSRateType === 'mensual'}
+                                onChange={(e) => setCreditoFSRateType(e.target.value as 'mensual' | 'retanqueo')}
+                                className="w-4 h-4"
+                              />
+                              <label htmlFor="fs-mensual" className="cursor-pointer text-sm">Tasa Mensual</label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="fs-retanqueo"
+                                name="fsRateType"
+                                value="retanqueo"
+                                checked={creditoFSRateType === 'retanqueo'}
+                                onChange={(e) => setCreditoFSRateType(e.target.value as 'mensual' | 'retanqueo')}
+                                className="w-4 h-4"
+                              />
+                              <label htmlFor="fs-retanqueo" className="cursor-pointer text-sm">Tasa Retanqueo</label>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="convenio" className="space-y-4 mt-4">
