@@ -920,15 +920,16 @@ const SalesPlanConfig = () => {
                       const preliminaryFinancedAmount = discountedPrice - newModelTotalInitial;
                       
                       // 5. Calcular Fondo (% según tipo de cliente) sobre el valor PRELIMINAR a financiar
-                      const minimumInitial = preliminaryFinancedAmount * (clientConfig.ci / 100); // Cuota Inicial (fondo)
-                      const additionalInitial = newModelTotalInitial; // La cuota ingresada es la adicional
+                      const minimumInitial = preliminaryFinancedAmount * (clientConfig.ci / 100);
                       
-                      // 6. Calcular valor FINAL a financiar = Valor preliminar - Fondo
-                      const financedAmount = preliminaryFinancedAmount - minimumInitial;
+                      // 6. La Cuota Inicial Total (FIJA) se divide en: Fondo + Adicional
+                      const additionalInitial = newModelTotalInitial - minimumInitial;
                       
-                      // 7. Cuota Inicial TOTAL REAL = Cuota ingresada + Fondo
-                      const totalInitialReal = newModelTotalInitial + minimumInitial;
-                      const totalInitialPercent = (totalInitialReal / discountedPrice) * 100;
+                      // 7. Calcular valor FINAL a financiar = Nueva Base FS - Cuota Inicial Total
+                      const financedAmount = discountedPrice - newModelTotalInitial;
+                      
+                      // 8. Calcular % real de la Cuota Inicial Total sobre Nueva Base FS
+                      const totalInitialPercent = (newModelTotalInitial / discountedPrice) * 100;
                       
                       // Guardar valores calculados para mostrar en UI
                       setNewModelInitialPercent(totalInitialPercent);
@@ -938,7 +939,6 @@ const SalesPlanConfig = () => {
                       setNewModelDiscountAmount(discountAmount);
                       setNewModelNewBaseFS(discountedPrice);
                       setNewModelFinancedAmount(financedAmount);
-                      setNewModelTotalInitial(totalInitialReal); // Actualizar con el total real
                       const disbursedAmount = financedAmount;
                       
                       // Usar tasa mensual para corto plazo
