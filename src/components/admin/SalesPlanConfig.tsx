@@ -900,7 +900,7 @@ const SalesPlanConfig = () => {
                       const basePrice = newModelBasePrice;
                       const clientConfig = clientTypeConfig[newModelClientType];
                       
-                      // 1. Calcular el % que representa la Cuota Inicial Total sobre el Precio Base
+                      // 1. Calcular el % que representa la Cuota Inicial ingresada sobre el Precio Base
                       const initialPercent = (newModelTotalInitial / basePrice) * 100;
                       
                       // 2. Determinar el descuento aplicable según el %
@@ -912,25 +912,33 @@ const SalesPlanConfig = () => {
                         }
                       }
                       
-                      // 3. Calcular descuento y Nueva Base FS
+                      // 3. Calcular descuento y Nueva Base FS (Precio Base - Descuento)
                       const discountAmount = basePrice * (discountPercent / 100);
                       const discountedPrice = basePrice - discountAmount;
                       
-                      // 4. Separar la Cuota Inicial Total en sus componentes
-                      const minimumInitial = basePrice * (clientConfig.ci / 100); // Cuota Inicial (fondo)
-                      const additionalInitial = newModelTotalInitial - minimumInitial; // Cuota I. Adicional
+                      // 4. Restar cuota inicial ingresada = Valor PRELIMINAR a financiar
+                      const preliminaryFinancedAmount = discountedPrice - newModelTotalInitial;
                       
-                      // 5. Calcular valor a financiar = Nueva Base FS - Cuota Inicial Total
-                      const financedAmount = discountedPrice - newModelTotalInitial;
+                      // 5. Calcular Fondo (% según tipo de cliente) sobre el valor PRELIMINAR a financiar
+                      const minimumInitial = preliminaryFinancedAmount * (clientConfig.ci / 100); // Cuota Inicial (fondo)
+                      const additionalInitial = newModelTotalInitial; // La cuota ingresada es la adicional
+                      
+                      // 6. Calcular valor FINAL a financiar = Valor preliminar - Fondo
+                      const financedAmount = preliminaryFinancedAmount - minimumInitial;
+                      
+                      // 7. Cuota Inicial TOTAL REAL = Cuota ingresada + Fondo
+                      const totalInitialReal = newModelTotalInitial + minimumInitial;
+                      const totalInitialPercent = (totalInitialReal / discountedPrice) * 100;
                       
                       // Guardar valores calculados para mostrar en UI
-                      setNewModelInitialPercent(initialPercent);
+                      setNewModelInitialPercent(totalInitialPercent);
                       setNewModelMinimumInitial(minimumInitial);
                       setNewModelAdditionalInitial(additionalInitial);
                       setNewModelDiscountPercent(discountPercent);
                       setNewModelDiscountAmount(discountAmount);
                       setNewModelNewBaseFS(discountedPrice);
                       setNewModelFinancedAmount(financedAmount);
+                      setNewModelTotalInitial(totalInitialReal); // Actualizar con el total real
                       const disbursedAmount = financedAmount;
                       
                       // Usar tasa mensual para corto plazo
@@ -992,23 +1000,23 @@ const SalesPlanConfig = () => {
                       </div>
                       
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                          <span className="text-sm text-muted-foreground">Cuota Inicial (Fondo)</span>
-                          <div className="text-base font-semibold text-blue-700 dark:text-blue-400">
-                            ${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            ({clientTypeConfig[newModelClientType].ci}% del Precio Base)
-                          </div>
-                        </div>
-                        
                         <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                          <span className="text-sm text-muted-foreground">Cuota I. Adicional</span>
+                          <span className="text-sm text-muted-foreground">Cuota I. Ingresada</span>
                           <div className="text-base font-semibold text-purple-700 dark:text-purple-400">
                             ${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            (Resto de Cuota Inicial Total)
+                            (Cuota manual del asesor)
+                          </div>
+                        </div>
+                        
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <span className="text-sm text-muted-foreground">Cuota Fondo (Tipo {newModelClientType})</span>
+                          <div className="text-base font-semibold text-blue-700 dark:text-blue-400">
+                            ${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            ({clientTypeConfig[newModelClientType].ci}% del valor a financiar)
                           </div>
                         </div>
                       </div>
@@ -1127,14 +1135,14 @@ const SalesPlanConfig = () => {
                             header.innerHTML = `
                               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                                 <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
-                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial (Fondo)</div>
-                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
-                                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">({clientTypeConfig[newModelClientType].ci}% del Precio Base)</div>
+                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota I. Ingresada</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">(Cuota manual del asesor)</div>
                                 </div>
                                 <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
-                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota I. Adicional</div>
-                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
-                                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">(Resto de C.I. Total)</div>
+                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Fondo (Tipo ${newModelClientType})</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">({clientTypeConfig[newModelClientType].ci}% del valor a financiar)</div>
                                 </div>
                                 <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
                                   <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial Total</div>
