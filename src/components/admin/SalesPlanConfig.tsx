@@ -50,6 +50,16 @@ const SalesPlanConfig = () => {
   const [newModelSeguro2Formula, setNewModelSeguro2Formula] = useState(0.17);
   const [newModelRateType, setNewModelRateType] = useState<'mensual' | 'retanqueo'>('mensual');
   const [newModelAmortizationTable, setNewModelAmortizationTable] = useState<any[]>([]);
+  
+  // Estados para opciones adicionales de Venta Crédito
+  const [newModelInicialMayor, setNewModelInicialMayor] = useState(false);
+  const [newModelInicialMayorValue, setNewModelInicialMayorValue] = useState(0);
+  const [newModelRetanqueoFS, setNewModelRetanqueoFS] = useState(false);
+  const [newModelSaldoFinansuenos, setNewModelSaldoFinansuenos] = useState(0);
+  const [newModelRetanqueoEdC, setNewModelRetanqueoEdC] = useState(false);
+  const [newModelSaldoArpesod, setNewModelSaldoArpesod] = useState(0);
+  const [newModelAdjustedBasePrice, setNewModelAdjustedBasePrice] = useState(0);
+  const [newModelOriginalMonthlyPayment, setNewModelOriginalMonthlyPayment] = useState(0);
   const [newModelTotalInitial, setNewModelTotalInitial] = useState(0);
   const [newModelMinimumInitial, setNewModelMinimumInitial] = useState(0);
   const [newModelAdditionalInitial, setNewModelAdditionalInitial] = useState(0);
@@ -1204,6 +1214,114 @@ const SalesPlanConfig = () => {
 
               {newModelTermType === 'largo' && (
                 <div className="space-y-6 p-4 border rounded-lg bg-muted/30">
+                  {/* Opciones adicionales: Cuota Inicial Mayor, Retanqueos */}
+                  <div className="space-y-4 p-4 border rounded-lg bg-accent/5">
+                    <Label className="text-sm font-semibold">Opciones Adicionales (Simulación)</Label>
+                    
+                    {/* Cuota Inicial Mayor */}
+                    <div className="flex items-start space-x-3 p-3 border rounded-lg bg-background">
+                      <Checkbox
+                        id="newModelInicialMayor"
+                        checked={newModelInicialMayor}
+                        onCheckedChange={(checked) => {
+                          setNewModelInicialMayor(checked as boolean);
+                          if (!checked) {
+                            setNewModelInicialMayorValue(0);
+                            setNewModelRetanqueoFS(false);
+                            setNewModelRetanqueoEdC(false);
+                          }
+                        }}
+                      />
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="newModelInicialMayor" className="text-sm font-medium cursor-pointer">
+                          Cuota Inicial Mayor
+                        </Label>
+                        {newModelInicialMayor && (
+                          <Input
+                            type="number"
+                            step="1000"
+                            min="0"
+                            value={newModelInicialMayorValue}
+                            onChange={(e) => setNewModelInicialMayorValue(parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
+                            placeholder="Valor inicial mayor"
+                            className="mt-2"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Retanqueo FS a FS */}
+                    <div className="flex items-start space-x-3 p-3 border rounded-lg bg-background">
+                      <Checkbox
+                        id="newModelRetanqueoFS"
+                        checked={newModelRetanqueoFS}
+                        onCheckedChange={(checked) => {
+                          setNewModelRetanqueoFS(checked as boolean);
+                          if (!checked) {
+                            setNewModelSaldoFinansuenos(0);
+                          }
+                          if (checked) {
+                            setNewModelInicialMayor(false);
+                            setNewModelRetanqueoEdC(false);
+                          }
+                        }}
+                      />
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="newModelRetanqueoFS" className="text-sm font-medium cursor-pointer">
+                          Retanqueo FS a FS
+                        </Label>
+                        {newModelRetanqueoFS && (
+                          <Input
+                            type="number"
+                            step="1000"
+                            min="0"
+                            value={newModelSaldoFinansuenos}
+                            onChange={(e) => setNewModelSaldoFinansuenos(parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
+                            placeholder="Saldo FinanSueños"
+                            className="mt-2"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Retanqueo EdC a FS */}
+                    <div className="flex items-start space-x-3 p-3 border rounded-lg bg-background">
+                      <Checkbox
+                        id="newModelRetanqueoEdC"
+                        checked={newModelRetanqueoEdC}
+                        onCheckedChange={(checked) => {
+                          setNewModelRetanqueoEdC(checked as boolean);
+                          if (!checked) {
+                            setNewModelSaldoArpesod(0);
+                          }
+                          if (checked) {
+                            setNewModelInicialMayor(false);
+                            setNewModelRetanqueoFS(false);
+                          }
+                        }}
+                      />
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="newModelRetanqueoEdC" className="text-sm font-medium cursor-pointer">
+                          Retanqueo EdC a FS
+                        </Label>
+                        {newModelRetanqueoEdC && (
+                          <Input
+                            type="number"
+                            step="1000"
+                            min="0"
+                            value={newModelSaldoArpesod}
+                            onChange={(e) => setNewModelSaldoArpesod(parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
+                            placeholder="Saldo Arpesod"
+                            className="mt-2"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid gap-2">
                     <Label className="text-sm font-medium">Seleccionar Tasa de Interés</Label>
                     <div className="flex gap-4 items-center">
@@ -1241,18 +1359,89 @@ const SalesPlanConfig = () => {
                         return;
                       }
                       
-                      // Calcular amortización francesa
-                      const basePrice = newModelBasePrice;
+                      let basePrice = newModelBasePrice;
                       const clientConfig = clientTypeConfig[newModelClientType];
-                      const initialPayment = basePrice * (clientConfig.ci / 100);
-                      // La cuota inicial es un pago adicional, no descuenta del precio base
-                      const disbursedAmount = basePrice;
+                      let interestRate = newModelRateType === 'mensual' ? newModelMonthlyRate / 100 : newModelRetanqueoRate / 100;
                       
-                      const interestRate = newModelRateType === 'mensual' ? newModelMonthlyRate / 100 : newModelRetanqueoRate / 100;
+                      // Calcular cuota original sin modificaciones
+                      const r_original = newModelMonthlyRate / 100;
+                      const n_original = newModelInstallments;
+                      const fixedPaymentWithoutExtras_original = basePrice * (r_original * Math.pow(1 + r_original, n_original)) / (Math.pow(1 + r_original, n_original) - 1);
+                      const tecAdmPerMonth_original = (basePrice * (newModelTecAdm / 100)) / newModelInstallments;
+                      const fgaPerMonth_original = basePrice * (clientConfig.fga / 100);
+                      const seguro1_original = fixedPaymentWithoutExtras_original * (newModelSeguro1 / 100);
+                      const seguro2_original = (basePrice * newModelSeguro2Formula) / 1000;
+                      const originalPayment = fixedPaymentWithoutExtras_original + tecAdmPerMonth_original + fgaPerMonth_original + seguro1_original + seguro2_original;
+                      
+                      setNewModelOriginalMonthlyPayment(originalPayment);
+                      
+                      // Aplicar lógicas según opciones seleccionadas
+                      if (newModelRetanqueoEdC && newModelSaldoArpesod > 0) {
+                        // Retanqueo EdC a FS
+                        const currentMonthlyPayment = Math.ceil(originalPayment / 1000) * 1000;
+                        const pagoTotal = currentMonthlyPayment * newModelInstallments;
+                        const nuevoTotal = pagoTotal + newModelSaldoArpesod;
+                        const nuevaCuotaSinRedondear = nuevoTotal / newModelInstallments;
+                        const nuevaCuotaObjetivo = Math.ceil(nuevaCuotaSinRedondear / 1000) * 1000;
+                        
+                        // Función para calcular cuota sin redondear dada una base
+                        const calcularCuotaSinRedondear = (base: number): number => {
+                          const r = newModelMonthlyRate / 100;
+                          const n = newModelInstallments;
+                          const fixedPaymentWithoutExtras = base * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+                          const tecAdm = (base * (newModelTecAdm / 100)) / n;
+                          const fga = base * (clientConfig.fga / 100);
+                          const seg1 = fixedPaymentWithoutExtras * (newModelSeguro1 / 100);
+                          const seg2 = (base * newModelSeguro2Formula) / 1000;
+                          return fixedPaymentWithoutExtras + tecAdm + fga + seg1 + seg2;
+                        };
+                        
+                        // Buscar mejor base
+                        let mejorBase = 1000000;
+                        let menorDiferencia = Infinity;
+                        const baseMin = Math.max(1000000, nuevoTotal * 0.5);
+                        const baseMax = nuevoTotal * 1.5;
+                        
+                        for (let base = baseMin; base <= baseMax; base += 1000) {
+                          const cuotaSinRedondear = calcularCuotaSinRedondear(base);
+                          const cuotaRedondeada = Math.ceil(cuotaSinRedondear / 1000) * 1000;
+                          
+                          if (cuotaRedondeada >= nuevaCuotaObjetivo) {
+                            const diferencia = Math.abs(cuotaSinRedondear - nuevaCuotaObjetivo);
+                            if (diferencia < menorDiferencia) {
+                              menorDiferencia = diferencia;
+                              mejorBase = base;
+                            }
+                            if (diferencia < 100) break;
+                          }
+                        }
+                        
+                        basePrice = Math.round(mejorBase / 1000) * 1000;
+                        setNewModelAdjustedBasePrice(basePrice);
+                      } else if (newModelRetanqueoFS && newModelSaldoFinansuenos > 0) {
+                        // Retanqueo FS a FS
+                        basePrice = basePrice + newModelSaldoFinansuenos;
+                        interestRate = newModelRetanqueoRate / 100;
+                        setNewModelAdjustedBasePrice(basePrice);
+                      } else if (newModelInicialMayor && newModelInicialMayorValue > 0) {
+                        // Cuota Inicial Mayor
+                        const roundedOriginalPayment = Math.ceil(originalPayment / 1000) * 1000;
+                        
+                        if (newModelInicialMayorValue < roundedOriginalPayment) {
+                          toast.error(`La inicial mayor debe ser al menos $${roundedOriginalPayment.toLocaleString()}`);
+                          return;
+                        }
+                        
+                        const excess = newModelInicialMayorValue - roundedOriginalPayment;
+                        basePrice = basePrice - excess;
+                        setNewModelAdjustedBasePrice(basePrice);
+                      }
+                      
+                      // Calcular amortización con la base ajustada
+                      const disbursedAmount = basePrice;
                       const tecAdmPerMonth = (basePrice * (newModelTecAdm / 100)) / newModelInstallments;
                       const fgaPerMonth = basePrice * (clientConfig.fga / 100);
                       
-                      // Calcular cuota base (capital + interés) usando sistema francés
                       const r = interestRate;
                       const n = newModelInstallments;
                       const fixedPaymentWithoutExtras = disbursedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
@@ -1263,14 +1452,8 @@ const SalesPlanConfig = () => {
                       for (let i = 1; i <= newModelInstallments; i++) {
                         const interest = balance * interestRate;
                         const principal = fixedPaymentWithoutExtras - interest;
-                        
-                        // Seguro 1: sobre la cuota (capital + interés)
                         const seguro1 = fixedPaymentWithoutExtras * (newModelSeguro1 / 100);
-                        
-                        // Seguro 2: (Saldo × Formula) / 1000
                         const seguro2 = (balance * newModelSeguro2Formula) / 1000;
-                        
-                        // Cuota total = capital + interés + Tec/Adm + FGA + Seguro1 + Seguro2
                         const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1 + seguro2;
                         
                         table.push({
@@ -1289,6 +1472,14 @@ const SalesPlanConfig = () => {
                       }
                       
                       setNewModelAmortizationTable(table);
+                      
+                      if (newModelRetanqueoEdC) {
+                        toast.success(`Retanqueo EdC aplicado. Nueva Base: $${basePrice.toLocaleString()}`);
+                      } else if (newModelRetanqueoFS) {
+                        toast.success(`Retanqueo FS aplicado. Nueva Base: $${basePrice.toLocaleString()}`);
+                      } else if (newModelInicialMayor) {
+                        toast.success(`Inicial Mayor aplicada. Base ajustada: $${basePrice.toLocaleString()}`);
+                      }
                     }}
                     className="w-full"
                   >
@@ -1298,6 +1489,38 @@ const SalesPlanConfig = () => {
 
                    {newModelAmortizationTable.length > 0 && (
                     <div className="space-y-4">
+                      {/* Mostrar información de opciones aplicadas */}
+                      {(newModelInicialMayor || newModelRetanqueoFS || newModelRetanqueoEdC) && (
+                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg space-y-2">
+                          <Label className="text-sm font-semibold">Información de Simulación</Label>
+                          {newModelInicialMayor && (
+                            <div className="text-sm">
+                              <span className="font-medium">Cuota Inicial Mayor:</span> ${newModelInicialMayorValue.toLocaleString('es-CO')}
+                            </div>
+                          )}
+                          {newModelRetanqueoFS && (
+                            <div className="text-sm">
+                              <span className="font-medium">Retanqueo FS a FS - Saldo:</span> ${newModelSaldoFinansuenos.toLocaleString('es-CO')}
+                            </div>
+                          )}
+                          {newModelRetanqueoEdC && (
+                            <div className="text-sm">
+                              <span className="font-medium">Retanqueo EdC a FS - Saldo:</span> ${newModelSaldoArpesod.toLocaleString('es-CO')}
+                            </div>
+                          )}
+                          {newModelAdjustedBasePrice > 0 && (
+                            <div className="text-sm">
+                              <span className="font-medium">Base Ajustada:</span> ${newModelAdjustedBasePrice.toLocaleString('es-CO')}
+                            </div>
+                          )}
+                          {newModelOriginalMonthlyPayment > 0 && !newModelRetanqueoEdC && !newModelRetanqueoFS && (
+                            <div className="text-sm">
+                              <span className="font-medium">Cuota Original:</span> ${Math.ceil(newModelOriginalMonthlyPayment / 1000) * 1000}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
                       <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
                         <span className="font-semibold">Cuota Inicial: ({clientTypeConfig[newModelClientType].ci}%)</span>
                         <span className="text-lg font-bold text-primary">
