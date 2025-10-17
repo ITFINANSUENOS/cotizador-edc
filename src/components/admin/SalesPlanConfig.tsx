@@ -13,6 +13,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import html2canvas from "html2canvas";
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface SalesPlanConfig {
   id: string;
@@ -84,9 +86,47 @@ const SalesPlanConfig = () => {
     { minPercent: 29.999, maxPercent: 44.999, discount: 15 },
   ]);
 
+  const [showHistory, setShowHistory] = useState(false);
+  const [discountHistory, setDiscountHistory] = useState<any[]>([]);
+
   useEffect(() => {
     loadConfigs();
+    fetchDiscountHistory();
   }, []);
+
+  const fetchDiscountHistory = async () => {
+    const { data, error } = await supabase
+      .from('discount_ranges_history')
+      .select('*')
+      .eq('plan_type', 'nuevo_modelo_credito')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching discount history:', error);
+      return;
+    }
+
+    setDiscountHistory(data || []);
+  };
+
+  const saveDiscountRanges = async () => {
+    const { error } = await supabase
+      .from('discount_ranges_history')
+      .insert({
+        ranges: discountRanges,
+        plan_type: 'nuevo_modelo_credito',
+        created_by: (await supabase.auth.getUser()).data.user?.id,
+      });
+
+    if (error) {
+      console.error('Error saving discount ranges:', error);
+      toast.error("No se pudo guardar la tabla");
+      return;
+    }
+
+    toast.success("Tabla guardada exitosamente");
+    fetchDiscountHistory();
+  };
 
   const loadConfigs = async () => {
     setLoading(true);
@@ -944,10 +984,28 @@ const SalesPlanConfig = () => {
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
-                        <DialogTitle>Configuración de Descuentos por Cuota Inicial (Corto Plazo)</DialogTitle>
-                        <DialogDescription>
-                          Define los rangos de porcentaje de cuota inicial y el descuento aplicable sobre el precio base
-                        </DialogDescription>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1.5">
+                            <DialogTitle>Configuración de Descuentos por Cuota Inicial (Corto Plazo)</DialogTitle>
+                            <DialogDescription>
+                              Define los rangos de porcentaje de cuota inicial y el descuento aplicable sobre el precio base
+                            </DialogDescription>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Button 
+                              onClick={saveDiscountRanges}
+                              size="sm"
+                            >
+                              Guardar Tabla
+                            </Button>
+                            <button
+                              onClick={() => setShowHistory(true)}
+                              className="text-sm text-muted-foreground underline hover:text-foreground transition-colors"
+                            >
+                              Historico
+                            </button>
+                          </div>
+                        </div>
                       </DialogHeader>
                       <div className="space-y-4">
                         <Table>
@@ -1658,6 +1716,67 @@ const SalesPlanConfig = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showHistory} onOpenChange={setShowHistory}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Histórico de Descuentos Corto Plazo</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {discountHistory.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">
+                No hay histórico disponible
+              </p>
+            ) : (
+              discountHistory.map((history, index) => {
+                const ranges = history.ranges as Array<{minPercent: number, maxPercent: number, discount: number}>;
+                const createdAt = new Date(history.created_at);
+                const nextChange = index > 0 ? new Date(discountHistory[index - 1].created_at) : null;
+                
+                return (
+                  <div key={history.id} className="border rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium">
+                          Creado: {format(createdAt, "d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })}
+                        </p>
+                        {nextChange && (
+                          <p className="text-sm text-muted-foreground">
+                            Modificado: {format(nextChange, "d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })}
+                          </p>
+                        )}
+                        {index === 0 && (
+                          <p className="text-sm text-green-600 font-medium">Actual</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Inicial Mínima (%)</TableHead>
+                          <TableHead>Inicial Máxima (%)</TableHead>
+                          <TableHead>Descuento (%)</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {ranges.map((range, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>{range.minPercent}%</TableCell>
+                            <TableCell>{range.maxPercent}%</TableCell>
+                            <TableCell>{range.discount}%</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

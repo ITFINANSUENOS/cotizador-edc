@@ -62,6 +62,30 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_ranges_history: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          plan_type: string
+          ranges: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          plan_type?: string
+          ranges: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          plan_type?: string
+          ranges?: Json
+        }
+        Relationships: []
+      }
       permissions: {
         Row: {
           created_at: string | null
