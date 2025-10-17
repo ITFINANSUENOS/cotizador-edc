@@ -1142,11 +1142,11 @@ const SalesPlanConfig = () => {
                       const discountAmount = basePrice * (discountPercent / 100);
                       const discountedPrice = basePrice - discountAmount;
                       
-                      // 4. Restar cuota inicial ingresada = Valor PRELIMINAR a financiar
-                      const preliminaryFinancedAmount = discountedPrice - newModelTotalInitial;
+                      // 4. Restar cuota inicial ingresada = Valor a financiar (base para calcular Cuota FS)
+                      const financedAmount = discountedPrice - newModelTotalInitial;
                       
-                      // 5. Calcular Fondo (% según tipo de cliente) sobre el valor PRELIMINAR a financiar
-                      const minimumInitial = preliminaryFinancedAmount * (clientConfig.ci / 100);
+                      // 5. Calcular Fondo (% según tipo de cliente) sobre el valor a financiar
+                      const minimumInitial = financedAmount * (clientConfig.ci / 100);
                       
                       // 6. La Cuota Inicial ingresada por el asesor (sin restar nada)
                       const additionalInitial = newModelTotalInitial;
@@ -1154,10 +1154,7 @@ const SalesPlanConfig = () => {
                       // 7. La Cuota Inicial Final Total es la SUMA de Cuota Inicial + Cuota FS
                       const totalFinalInitial = newModelTotalInitial + minimumInitial;
                       
-                      // 8. Calcular valor FINAL a financiar = Nueva Base FS - Cuota Inicial Final Total
-                      const financedAmount = discountedPrice - totalFinalInitial;
-                      
-                      // 9. Calcular % de la Cuota Inicial ingresada sobre Precio Base
+                      // 8. Calcular % de la Cuota Inicial ingresada sobre Precio Base
                       const totalInitialPercent = (newModelTotalInitial / basePrice) * 100;
                       
                       // Guardar valores calculados para mostrar en UI
