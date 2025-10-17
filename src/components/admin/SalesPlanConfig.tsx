@@ -1218,42 +1218,35 @@ const SalesPlanConfig = () => {
 
                   {newModelAmortizationTable.length > 0 && (
                     <div className="space-y-4">
-                      {/* Mostrar el % que representa la cuota inicial sobre el precio base */}
-                      <div className="text-sm text-center text-muted-foreground">
-                        La Cuota Inicial representa el <span className="font-semibold text-primary">{newModelInitialPercent.toFixed(2)}%</span> del Precio Base
-                      </div>
-
-                      {/* Cuadro principal con Cuota Inicial y Cuota FS */}
-                      <div className="p-4 border rounded-lg bg-background space-y-3">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <span className="font-semibold">Cuota Inicial: </span>
-                            <span className="text-xs text-muted-foreground">({newModelInitialPercent.toFixed(1)}%)</span>
+                      {/* Cuadro con Cuota Inicial y Cuota FS en la misma línea */}
+                      <div className="p-4 border rounded-lg">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <div className="font-semibold">
+                              Cuota Inicial: <span className="text-sm text-muted-foreground">({newModelInitialPercent.toFixed(1)}%)</span>
+                            </div>
+                            <div className="text-lg font-bold">
+                              ${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </div>
                           </div>
-                          <span className="text-lg font-bold">
-                            ${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                          </span>
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold">Cuota FS</span>
-                          <span className="text-lg font-bold">
-                            ${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                          </span>
-                        </div>
-
-                        <div className="text-sm text-muted-foreground text-center pt-2 border-t">
-                          Tipo {newModelClientType}: {clientTypeConfig[newModelClientType].ci}%
-                        </div>
-
-                        <div className="pt-3 border-t">
-                          <div className="text-center">
-                            <div className="text-sm text-muted-foreground mb-1">Cuota Inicial Final:</div>
-                            <div className="text-2xl font-bold text-primary">
-                              ${newModelTotalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                          
+                          <div className="space-y-1">
+                            <div className="font-semibold">Cuota FS</div>
+                            <div className="text-lg font-bold">
+                              ${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Tipo {newModelClientType}: {clientTypeConfig[newModelClientType].ci}%
                             </div>
                           </div>
                         </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
+                        <span className="font-semibold">Cuota Inicial Final:</span>
+                        <span className="text-lg font-bold text-primary">
+                          ${newModelTotalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                        </span>
                       </div>
                       
                       <div className="flex justify-between items-center p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
