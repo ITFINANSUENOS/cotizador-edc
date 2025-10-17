@@ -1809,8 +1809,8 @@ const SalesPlanConfig = () => {
                                 .eq('id', history.id);
                               
                               if (error) {
-                                toast.error("Error al eliminar registro");
-                                console.error(error);
+                                console.error('Error al eliminar:', error);
+                                toast.error(`Error al eliminar: ${error.message}`);
                                 return;
                               }
                               
