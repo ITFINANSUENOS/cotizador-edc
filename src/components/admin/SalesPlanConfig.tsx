@@ -1219,24 +1219,24 @@ const SalesPlanConfig = () => {
                   {newModelAmortizationTable.length > 0 && (
                     <div className="space-y-4">
                       {/* Cuadro con Cuota Inicial y Cuota FS en la misma línea */}
-                      <div className="p-4 border rounded-lg">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                            <div className="font-semibold">
-                              Cuota Inicial: <span className="text-sm text-muted-foreground">({newModelInitialPercent.toFixed(1)}%)</span>
+                      <div className="p-3 border rounded-lg">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="font-semibold text-sm mb-1">
+                              Cuota Inicial: <span className="text-xs text-muted-foreground">({newModelInitialPercent.toFixed(1)}%)</span>
                             </div>
                             <div className="text-lg font-bold">
                               ${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                             </div>
                           </div>
                           
-                          <div className="space-y-1">
-                            <div className="font-semibold">Cuota FS</div>
+                          <div>
+                            <div className="font-semibold text-sm mb-1 flex items-center justify-between">
+                              <span>Cuota FS</span>
+                              <span className="text-xs text-muted-foreground">Tipo {newModelClientType}: {clientTypeConfig[newModelClientType].ci}%</span>
+                            </div>
                             <div className="text-lg font-bold">
                               ${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Tipo {newModelClientType}: {clientTypeConfig[newModelClientType].ci}%
                             </div>
                           </div>
                         </div>
