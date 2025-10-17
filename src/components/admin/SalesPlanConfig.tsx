@@ -26,6 +26,7 @@ interface SalesPlanConfig {
 const SalesPlanConfig = () => {
   const [configs, setConfigs] = useState<Record<string, SalesPlanConfig>>({});
   const [loading, setLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState<string>('');
   
   // CrediContado Config
   const [availableInstallments, setAvailableInstallments] = useState<number[]>([]);
@@ -92,7 +93,15 @@ const SalesPlanConfig = () => {
   useEffect(() => {
     loadConfigs();
     fetchDiscountHistory();
+    loadUserEmail();
   }, []);
+
+  const loadUserEmail = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email) {
+      setUserEmail(user.email);
+    }
+  };
 
   const fetchDiscountHistory = async () => {
     const { data, error } = await supabase
@@ -107,6 +116,12 @@ const SalesPlanConfig = () => {
     }
 
     setDiscountHistory(data || []);
+    
+    // Cargar el rango más reciente como actual
+    if (data && data.length > 0) {
+      const latestRanges = data[0].ranges as Array<{minPercent: number, maxPercent: number, discount: number}>;
+      setDiscountRanges(latestRanges);
+    }
   };
 
   const saveDiscountRanges = async () => {
@@ -1186,6 +1201,22 @@ const SalesPlanConfig = () => {
                       // 1. Calcular el % que representa la Cuota Inicial ingresada sobre el Precio Base
                       const initialPercent = (newModelTotalInitial / basePrice) * 100;
                       
+                      // Ordenar rangos por minPercent ascendente
+                      const sortedRanges = [...discountRanges].sort((a, b) => a.minPercent - b.minPercent);
+                      const minRange = sortedRanges[0];
+                      const maxRange = sortedRanges[sortedRanges.length - 1];
+                      
+                      // Validar si el porcentaje está fuera de los rangos
+                      if (initialPercent < minRange.minPercent) {
+                        toast.error("Valor bajo, no aplica descuentos");
+                        return;
+                      }
+                      
+                      if (initialPercent > maxRange.maxPercent) {
+                        toast.error("Inicial muy alta. Revisar precio Contado");
+                        return;
+                      }
+                      
                       // 2. Determinar el descuento aplicable según el %
                       let discountPercent = 0;
                       for (const range of discountRanges) {
@@ -1733,6 +1764,7 @@ const SalesPlanConfig = () => {
                 const ranges = history.ranges as Array<{minPercent: number, maxPercent: number, discount: number}>;
                 const createdAt = new Date(history.created_at);
                 const nextChange = index > 0 ? new Date(discountHistory[index - 1].created_at) : null;
+                const isSuperAdmin = userEmail === 'contacto@finansuenos.com';
                 
                 return (
                   <div key={history.id} className="border rounded-lg p-4 space-y-2">
@@ -1750,6 +1782,46 @@ const SalesPlanConfig = () => {
                           <p className="text-sm text-green-600 font-medium">Actual</p>
                         )}
                       </div>
+                      {isSuperAdmin && (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setDiscountRanges(ranges);
+                              setShowHistory(false);
+                              toast.success("Rangos cargados para edición");
+                            }}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async () => {
+                              if (!confirm('¿Está seguro que desea eliminar este registro del histórico?')) {
+                                return;
+                              }
+                              
+                              const { error } = await supabase
+                                .from('discount_ranges_history')
+                                .delete()
+                                .eq('id', history.id);
+                              
+                              if (error) {
+                                toast.error("Error al eliminar registro");
+                                console.error(error);
+                                return;
+                              }
+                              
+                              toast.success("Registro eliminado");
+                              fetchDiscountHistory();
+                            }}
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     
                     <Table>
