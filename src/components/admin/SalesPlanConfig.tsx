@@ -79,10 +79,9 @@ const SalesPlanConfig = () => {
   
   // Configuración de rangos de descuento para corto plazo
   const [discountRanges, setDiscountRanges] = useState([
-    { minPercent: 65, maxPercent: 100, discount: 25 },
-    { minPercent: 50, maxPercent: 64.999, discount: 20 },
-    { minPercent: 40, maxPercent: 49.999, discount: 15 },
-    { minPercent: 30, maxPercent: 39.999, discount: 10 },
+    { minPercent: 70, maxPercent: 100, discount: 25 },
+    { minPercent: 45, maxPercent: 69.999, discount: 20 },
+    { minPercent: 29.999, maxPercent: 44.999, discount: 15 },
   ]);
 
   useEffect(() => {
