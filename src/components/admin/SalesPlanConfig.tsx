@@ -1148,13 +1148,16 @@ const SalesPlanConfig = () => {
                       // 5. Calcular Fondo (% según tipo de cliente) sobre el valor PRELIMINAR a financiar
                       const minimumInitial = preliminaryFinancedAmount * (clientConfig.ci / 100);
                       
-                      // 6. La Cuota Inicial Total (FIJA) se divide en: Fondo + Adicional
-                      const additionalInitial = newModelTotalInitial - minimumInitial;
+                      // 6. La Cuota Inicial ingresada por el asesor (sin restar nada)
+                      const additionalInitial = newModelTotalInitial;
                       
-                      // 7. Calcular valor FINAL a financiar = Nueva Base FS - Cuota Inicial Total
-                      const financedAmount = discountedPrice - newModelTotalInitial;
+                      // 7. La Cuota Inicial Final Total es la SUMA de Cuota Inicial + Cuota FS
+                      const totalFinalInitial = newModelTotalInitial + minimumInitial;
                       
-                      // 8. Calcular % de la Cuota Inicial Total sobre Precio Base
+                      // 8. Calcular valor FINAL a financiar = Nueva Base FS - Cuota Inicial Final Total
+                      const financedAmount = discountedPrice - totalFinalInitial;
+                      
+                      // 9. Calcular % de la Cuota Inicial ingresada sobre Precio Base
                       const totalInitialPercent = (newModelTotalInitial / basePrice) * 100;
                       
                       // Guardar valores calculados para mostrar en UI
@@ -1245,7 +1248,7 @@ const SalesPlanConfig = () => {
                       <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
                         <span className="font-semibold">Cuota Inicial Final:</span>
                         <span className="text-lg font-bold text-primary">
-                          ${newModelTotalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                          ${(newModelTotalInitial + newModelMinimumInitial).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                         </span>
                       </div>
                       
