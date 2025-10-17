@@ -1231,9 +1231,9 @@ const SalesPlanConfig = () => {
                           </div>
                           
                           <div>
-                            <div className="font-semibold text-sm mb-1 flex items-center justify-between">
-                              <span>Cuota FS</span>
-                              <span className="text-xs text-muted-foreground">Tipo {newModelClientType}: {clientTypeConfig[newModelClientType].ci}%</span>
+                            <div className="font-semibold text-sm mb-1">
+                              <span>Cuota FS </span>
+                              <span className="text-xs text-muted-foreground">(Tipo {newModelClientType}: {clientTypeConfig[newModelClientType].ci}%)</span>
                             </div>
                             <div className="text-lg font-bold">
                               ${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
