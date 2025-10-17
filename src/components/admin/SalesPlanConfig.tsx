@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Save, Calculator, Settings, Info, Download } from "lucide-react";
+import { Save, Calculator, Settings, Info, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import html2canvas from "html2canvas";
@@ -71,6 +72,8 @@ const SalesPlanConfig = () => {
   const [newModelDiscountAmount, setNewModelDiscountAmount] = useState(0);
   const [newModelNewBaseFS, setNewModelNewBaseFS] = useState(0);
   const [newModelFinancedAmount, setNewModelFinancedAmount] = useState(0);
+  const [newModelInicialMayorLargo, setNewModelInicialMayorLargo] = useState(false);
+  const [newModelInicialMayorValueLargo, setNewModelInicialMayorValueLargo] = useState(0);
   const [clientTypeConfig, setClientTypeConfig] = useState<Record<string, { ci: number; fga: number }>>({
     'AAA': { ci: 0, fga: 0.25 },
     'AA': { ci: 0, fga: 0.25 },
@@ -1554,6 +1557,49 @@ const SalesPlanConfig = () => {
                     </div>
                   </div>
 
+                  <Collapsible open={newModelInicialMayorLargo} onOpenChange={setNewModelInicialMayorLargo}>
+                    <div className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-accent/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          id="newModelInicialMayorLargo"
+                          checked={newModelInicialMayorLargo}
+                          onCheckedChange={(checked) => {
+                            setNewModelInicialMayorLargo(checked as boolean);
+                            if (!checked) {
+                              setNewModelInicialMayorValueLargo(0);
+                            }
+                          }}
+                        />
+                        <Label htmlFor="newModelInicialMayorLargo" className="cursor-pointer font-medium">
+                          Cuota Inicial Mayor
+                        </Label>
+                      </div>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          {newModelInicialMayorLargo ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </Button>
+                      </CollapsibleTrigger>
+                    </div>
+                    <CollapsibleContent className="mt-4 space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="newModelInicialMayorValueLargo">Monto Inicial Mayor</Label>
+                        <Input
+                          id="newModelInicialMayorValueLargo"
+                          type="number"
+                          step="1000"
+                          min="0"
+                          value={newModelInicialMayorValueLargo}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setNewModelInicialMayorValueLargo(val === '' ? 0 : parseFloat(val));
+                          }}
+                          onFocus={(e) => e.target.select()}
+                          placeholder="Ingrese el monto de la inicial mayor"
+                        />
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+
                   <Button 
                     onClick={() => {
                       if (!newModelBasePrice || newModelBasePrice <= 0) {
@@ -1561,16 +1607,36 @@ const SalesPlanConfig = () => {
                         return;
                       }
                       
-                      // Calcular amortización francesa
-                      const basePrice = newModelBasePrice;
                       const clientConfig = clientTypeConfig[newModelClientType];
-                      const initialPayment = basePrice * (clientConfig.ci / 100);
-                      // La cuota inicial es un pago adicional, no descuenta del precio base
-                      const disbursedAmount = basePrice;
+                      const basePrice = newModelBasePrice;
+                      
+                      // Calcular primero la cuota FS (Cuota Inicial estándar)
+                      const cuotaFS = basePrice * (clientConfig.ci / 100);
+                      
+                      let adjustedBasePrice = basePrice;
+                      let finalInitialPayment = cuotaFS;
+                      let excess = 0;
+                      
+                      // Si hay inicial mayor, calcular la nueva base
+                      if (newModelInicialMayorLargo && newModelInicialMayorValueLargo > 0) {
+                        if (newModelInicialMayorValueLargo < cuotaFS) {
+                          toast.error(`La inicial mayor debe ser al menos $${cuotaFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })} (Cuota FS del ${clientConfig.ci}%)`);
+                          return;
+                        }
+                        
+                        // El exceso es la diferencia entre la inicial mayor y la cuota FS
+                        excess = newModelInicialMayorValueLargo - cuotaFS;
+                        // La nueva base es el precio base menos el exceso
+                        adjustedBasePrice = basePrice - excess;
+                        finalInitialPayment = newModelInicialMayorValueLargo;
+                      }
+                      
+                      // Calcular amortización con la base ajustada
+                      const disbursedAmount = adjustedBasePrice;
                       
                       const interestRate = newModelRateType === 'mensual' ? newModelMonthlyRate / 100 : newModelRetanqueoRate / 100;
-                      const tecAdmPerMonth = (basePrice * (newModelTecAdm / 100)) / newModelInstallments;
-                      const fgaPerMonth = basePrice * (clientConfig.fga / 100);
+                      const tecAdmPerMonth = (adjustedBasePrice * (newModelTecAdm / 100)) / newModelInstallments;
+                      const fgaPerMonth = adjustedBasePrice * (clientConfig.fga / 100);
                       
                       // Calcular cuota base (capital + interés) usando sistema francés
                       const r = interestRate;
@@ -1602,13 +1668,21 @@ const SalesPlanConfig = () => {
                           fga: fgaPerMonth,
                           seguro1: seguro1,
                           seguro2: seguro2,
-                          payment: totalPayment
+                          payment: totalPayment,
+                          adjustedBasePrice: adjustedBasePrice,
+                          cuotaFS: cuotaFS,
+                          finalInitialPayment: finalInitialPayment,
+                          excess: excess
                         });
                         
                         balance -= principal;
                       }
                       
                       setNewModelAmortizationTable(table);
+                      
+                      if (newModelInicialMayorLargo && excess > 0) {
+                        toast.success(`Inicial Mayor aplicada. Exceso: $${excess.toLocaleString('es-CO', { maximumFractionDigits: 0 })} descontado de la base`);
+                      }
                     }}
                     className="w-full"
                   >
@@ -1618,12 +1692,44 @@ const SalesPlanConfig = () => {
 
                    {newModelAmortizationTable.length > 0 && (
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                        <span className="font-semibold">Cuota Inicial: ({clientTypeConfig[newModelClientType].ci}%)</span>
-                        <span className="text-lg font-bold text-primary">
-                          ${(newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                        </span>
-                      </div>
+                      {newModelInicialMayorLargo && newModelAmortizationTable[0]?.excess > 0 ? (
+                        <>
+                          <div className="flex justify-between items-center p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                            <span className="font-semibold">Cuota FS Original: ({clientTypeConfig[newModelClientType].ci}%)</span>
+                            <span className="text-lg font-bold text-blue-700 dark:text-blue-400">
+                              ${newModelAmortizationTable[0]?.cuotaFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                            <span className="font-semibold">Inicial Mayor (Pagada):</span>
+                            <span className="text-lg font-bold text-green-700 dark:text-green-400">
+                              ${newModelAmortizationTable[0]?.finalInitialPayment.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                            <span className="font-semibold">Exceso Descontado:</span>
+                            <span className="text-lg font-bold text-purple-700 dark:text-purple-400">
+                              ${newModelAmortizationTable[0]?.excess.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                            <span className="font-semibold">Nueva Base Ajustada:</span>
+                            <span className="text-lg font-bold text-orange-700 dark:text-orange-400">
+                              ${newModelAmortizationTable[0]?.adjustedBasePrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
+                          <span className="font-semibold">Cuota Inicial: ({clientTypeConfig[newModelClientType].ci}%)</span>
+                          <span className="text-lg font-bold text-primary">
+                            ${(newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                          </span>
+                        </div>
+                      )}
                       
                       <div className="flex justify-between items-center p-3 bg-accent/10 rounded-lg">
                         <span className="font-semibold">Cuota Mensual:</span>
