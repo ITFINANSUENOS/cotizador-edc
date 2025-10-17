@@ -1243,7 +1243,7 @@ const SalesPlanConfig = () => {
                       </div>
                       
                       <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                        <span className="font-semibold">Cuota Inicial Final:</span>
+                        <span className="font-semibold">Cuota Inicial Total:</span>
                         <span className="text-lg font-bold text-primary">
                           ${(newModelTotalInitial + newModelMinimumInitial).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                         </span>
@@ -1363,21 +1363,21 @@ const SalesPlanConfig = () => {
                             header.innerHTML = `
                               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                                 <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
-                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota I. Ingresada</div>
+                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial:</div>
                                   <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
-                                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">(Cuota manual del asesor)</div>
+                                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">(${newModelInitialPercent.toFixed(1)}%)</div>
                                 </div>
                                 <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
-                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Fondo (Tipo ${newModelClientType})</div>
+                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota FS</div>
                                   <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
-                                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">({clientTypeConfig[newModelClientType].ci}% del valor a financiar)</div>
+                                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">(Tipo ${newModelClientType}: ${clientTypeConfig[newModelClientType].ci}%)</div>
                                 </div>
                                 <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
                                   <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial Total</div>
-                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${newModelTotalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })} (${newModelInitialPercent.toFixed(1)}%)</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${(newModelTotalInitial + newModelMinimumInitial).toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
                                 </div>
                               </div>
-                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                                 <div style="background: #fef3c7; padding: 10px; border-radius: 6px;">
                                   <div style="font-size: 13px; color: #92400e; margin-bottom: 4px;">Descuento</div>
                                   <div style="font-size: 16px; font-weight: bold; color: #92400e;">${newModelDiscountPercent}% - $${newModelDiscountAmount.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
@@ -1385,6 +1385,10 @@ const SalesPlanConfig = () => {
                                 <div style="background: #dbeafe; padding: 10px; border-radius: 6px;">
                                   <div style="font-size: 13px; color: #1e40af; margin-bottom: 4px;">Nueva base FS</div>
                                   <div style="font-size: 16px; font-weight: bold; color: #1e40af;">$${newModelNewBaseFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                                </div>
+                                <div style="background: #e9d5ff; padding: 10px; border-radius: 6px;">
+                                  <div style="font-size: 13px; color: #6b21a8; margin-bottom: 4px;">Valor a Financiar</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #6b21a8;">$${newModelFinancedAmount.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
                                 </div>
                               </div>
                             `;
