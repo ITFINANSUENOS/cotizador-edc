@@ -956,51 +956,18 @@ const Cotizador = () => {
                       </div>
 
                       {creditoFSTermType === 'corto' && (
-                        <>
-                          <div className="space-y-2">
-                            <Label>Cuota que está dispuesto a pagar</Label>
-                            <Input
-                              type="number"
-                              step="1000"
-                              min="0"
-                              value={creditoFSClientWillingToPay || ''}
-                              onChange={(e) => setCreditoFSClientWillingToPay(parseFloat(e.target.value) || 0)}
-                              onFocus={(e) => e.target.select()}
-                              placeholder="Ingrese el valor que el cliente puede dar"
-                            />
-                          </div>
-
-                          {creditoFSClientWillingToPay > 0 && creditoFSFondoCuota > 0 && (
-                            <div className="p-4 bg-accent/10 rounded-lg space-y-3 border-2 border-primary/20">
-                              <h4 className="font-semibold text-primary">Simulación Cuota Inicial</h4>
-                              
-                              <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-muted-foreground">Cuota dispuesta a pagar:</span>
-                                  <span className="font-medium">
-                                    ${creditoFSClientWillingToPay.toLocaleString()}
-                                  </span>
-                                </div>
-                                
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-muted-foreground">Cuota Fondo (requerida):</span>
-                                  <span className="font-medium text-accent">
-                                    ${creditoFSFondoCuota.toLocaleString()}
-                                  </span>
-                                </div>
-                                
-                                <div className="pt-2 border-t border-border">
-                                  <div className="flex justify-between items-center">
-                                    <span className="font-semibold">Cuota Inicial Total:</span>
-                                    <span className="text-lg font-bold text-primary">
-                                      ${creditoFSTotalInitial.toLocaleString()}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </>
+                        <div className="space-y-2">
+                          <Label>Cuota Inicial</Label>
+                          <Input
+                            type="number"
+                            step="1000"
+                            min="0"
+                            value={creditoFSClientWillingToPay || ''}
+                            onChange={(e) => setCreditoFSClientWillingToPay(parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
+                            placeholder="Ingrese la cuota inicial"
+                          />
+                        </div>
                       )}
 
                       {creditoFSTermType === 'largo' && (
@@ -1100,12 +1067,67 @@ const Cotizador = () => {
                 </TabsContent>
               </Tabs>
 
-              {/* Botón solo para credicontado y crédito */}
-              {(saleType === "credicontado" || saleType === "credito") && (
+              {/* Botón solo para credicontado, crédito y Crédito FS */}
+              {(saleType === "credicontado" || saleType === "credito" || saleType === "creditofs") && (
                 <>
                   <Button onClick={calculateQuote} className="w-full mt-6">
-                    Calcular Cotización
+                    {saleType === "creditofs" ? "Calcular Amortización" : "Calcular Cotización"}
                   </Button>
+                  
+                  {/* Información adicional - Solo para Crédito FS */}
+                  {saleType === "creditofs" && quote && creditoFSClientWillingToPay > 0 && (
+                    <div className="mt-4 space-y-3">
+                      {/* Porcentaje de la cuota inicial respecto al precio base */}
+                      <div className="text-sm text-muted-foreground text-center">
+                        Cuota Inicial: {((creditoFSClientWillingToPay / (productPrices[0]?.credit_price || 1)) * 100).toFixed(1)}% del Precio Base
+                      </div>
+                      
+                      {/* Cuadro de resumen */}
+                      <div className="p-3 bg-accent/10 rounded-lg border border-primary/20">
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Cuota Inicial */}
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium">
+                              Cuota Inicial: <span className="text-xs text-muted-foreground">
+                                ({((creditoFSClientWillingToPay / (productPrices[0]?.credit_price || 1)) * 100).toFixed(1)}%)
+                              </span>
+                            </div>
+                            <div className="text-base font-semibold">
+                              ${creditoFSClientWillingToPay.toLocaleString()}
+                            </div>
+                          </div>
+                          
+                          {/* Cuota FS */}
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium">Cuota FS</div>
+                            <div className="text-base font-semibold text-accent">
+                              ${creditoFSFondoCuota.toLocaleString()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Tipo {creditoFSClientType}: {
+                                creditoFSClientType === 'AAA' ? '5%' :
+                                creditoFSClientType === 'AA' ? '6%' :
+                                creditoFSClientType === 'A' ? '7%' :
+                                creditoFSClientType === 'BBB' ? '8%' :
+                                creditoFSClientType === 'BB' ? '9%' :
+                                creditoFSClientType === 'B' ? '10%' : ''
+                              }
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Cuota Inicial Final */}
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-semibold">Cuota Inicial Final:</span>
+                            <span className="text-lg font-bold text-primary">
+                              ${creditoFSTotalInitial.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Procesos adicionales - Solo para Crédito */}
                   {saleType === "credito" && quote && (
