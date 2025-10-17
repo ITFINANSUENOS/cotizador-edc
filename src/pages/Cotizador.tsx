@@ -36,6 +36,8 @@ const Cotizador = () => {
   const [creditoFSClientType, setCreditoFSClientType] = useState<string>('AAA');
   const [creditoFSTotalInitial, setCreditoFSTotalInitial] = useState(0);
   const [creditoFSRateType, setCreditoFSRateType] = useState<'mensual' | 'retanqueo'>('mensual');
+  const [creditoFSClientWillingToPay, setCreditoFSClientWillingToPay] = useState(0);
+  const [creditoFSFondoCuota, setCreditoFSFondoCuota] = useState(0);
   
   // Resetear valores cuando cambia el tipo de venta
   const handleSaleTypeChange = (newType: "contado" | "credicontado" | "credito" | "convenio" | "creditofs") => {
@@ -58,6 +60,8 @@ const Cotizador = () => {
     setClientPhone("");
     setCreditoFSTermType('');
     setCreditoFSTotalInitial(0);
+    setCreditoFSClientWillingToPay(0);
+    setCreditoFSFondoCuota(0);
     
     if (newType === "contado") {
       setInstallments(1);
@@ -496,10 +500,13 @@ const Cotizador = () => {
             { minPercent: 30, maxPercent: 39.999, discount: 10 },
           ];
           
-          // 1. Calcular % que representa la cuota inicial sobre el precio base
-          const initialPercent = (creditoFSTotalInitial / basePriceFS) * 100;
+          // 1. Calcular cuota inicial basada en lo que el cliente está dispuesto a pagar
+          const clientAdditional = creditoFSClientWillingToPay;
           
-          // 2. Determinar descuento aplicable
+          // 2. Calcular porcentaje de cuota adicional respecto a Base FS
+          const initialPercent = (clientAdditional / basePriceFS) * 100;
+          
+          // 3. Determinar descuento aplicable
           let discountPercent = 0;
           for (const range of discountRanges) {
             if (initialPercent >= range.minPercent && initialPercent <= range.maxPercent) {
@@ -508,21 +515,23 @@ const Cotizador = () => {
             }
           }
           
-          // 3. Calcular descuento y Nueva Base FS
+          // 4. Calcular descuento y Nueva Base FS
           const discountAmount = basePriceFS * (discountPercent / 100);
           const discountedPrice = basePriceFS - discountAmount;
           
-          // 4. Restar cuota inicial = Valor PRELIMINAR a financiar
-          const preliminaryFinancedAmount = discountedPrice - creditoFSTotalInitial;
+          // 5. Restar cuota adicional del cliente = Valor PRELIMINAR a financiar
+          const preliminaryFinancedAmount = discountedPrice - clientAdditional;
           
-          // 5. Calcular Fondo según tipo de cliente
-          const minimumInitial = preliminaryFinancedAmount * (clientConfig.ci / 100);
+          // 6. Calcular Fondo (Cuota Fondo) según tipo de cliente
+          const fondoCuota = preliminaryFinancedAmount * (clientConfig.ci / 100);
+          setCreditoFSFondoCuota(fondoCuota);
           
-          // 6. Cuota Inicial Total = Fondo + Adicional
-          const additionalInitial = creditoFSTotalInitial - minimumInitial;
+          // 7. Cuota Inicial Total = Cuota que el cliente está dispuesto a pagar + Cuota Fondo
+          const totalInitialPayment = clientAdditional + fondoCuota;
+          setCreditoFSTotalInitial(totalInitialPayment);
           
-          // 7. Valor FINAL a financiar
-          const financedAmount = discountedPrice - creditoFSTotalInitial;
+          // 8. Valor FINAL a financiar
+          const financedAmount = discountedPrice - totalInitialPayment;
           
           // Usar tasa mensual para corto plazo
           const interestRate = monthlyRate / 100;
@@ -541,7 +550,7 @@ const Cotizador = () => {
           basePrice = discountedPrice;
           totalPrice = discountedPrice;
           remainingBalance = financedAmount;
-          setInitialPayment(creditoFSTotalInitial);
+          setInitialPayment(totalInitialPayment);
           
         } else if (creditoFSTermType === 'largo') {
           // Lógica para largo plazo
@@ -947,18 +956,51 @@ const Cotizador = () => {
                       </div>
 
                       {creditoFSTermType === 'corto' && (
-                        <div className="space-y-2">
-                          <Label>Cuota Inicial Total</Label>
-                          <Input
-                            type="number"
-                            step="1000"
-                            min="0"
-                            value={creditoFSTotalInitial || ''}
-                            onChange={(e) => setCreditoFSTotalInitial(parseFloat(e.target.value) || 0)}
-                            onFocus={(e) => e.target.select()}
-                            placeholder="Ingrese la cuota inicial total en pesos"
-                          />
-                        </div>
+                        <>
+                          <div className="space-y-2">
+                            <Label>Cuota que está dispuesto a pagar</Label>
+                            <Input
+                              type="number"
+                              step="1000"
+                              min="0"
+                              value={creditoFSClientWillingToPay || ''}
+                              onChange={(e) => setCreditoFSClientWillingToPay(parseFloat(e.target.value) || 0)}
+                              onFocus={(e) => e.target.select()}
+                              placeholder="Ingrese el valor que el cliente puede dar"
+                            />
+                          </div>
+
+                          {creditoFSClientWillingToPay > 0 && creditoFSFondoCuota > 0 && (
+                            <div className="p-4 bg-accent/10 rounded-lg space-y-3 border-2 border-primary/20">
+                              <h4 className="font-semibold text-primary">Simulación Cuota Inicial</h4>
+                              
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">Cuota dispuesta a pagar:</span>
+                                  <span className="font-medium">
+                                    ${creditoFSClientWillingToPay.toLocaleString()}
+                                  </span>
+                                </div>
+                                
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">Cuota Fondo (requerida):</span>
+                                  <span className="font-medium text-accent">
+                                    ${creditoFSFondoCuota.toLocaleString()}
+                                  </span>
+                                </div>
+                                
+                                <div className="pt-2 border-t border-border">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-semibold">Cuota Inicial Total:</span>
+                                    <span className="text-lg font-bold text-primary">
+                                      ${creditoFSTotalInitial.toLocaleString()}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
 
                       {creditoFSTermType === 'largo' && (
