@@ -1094,7 +1094,7 @@ const SalesPlanConfig = () => {
                 <div className="space-y-6 p-4 border rounded-lg bg-muted/30">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="newModelTotalInitial">Cuota Inicial Total</Label>
+                      <Label htmlFor="newModelTotalInitial">Cuota Inicial</Label>
                       <Input
                         id="newModelTotalInitial"
                         type="number"
@@ -1106,7 +1106,7 @@ const SalesPlanConfig = () => {
                           setNewModelTotalInitial(val === '' ? 0 : parseFloat(val));
                         }}
                         onFocus={(e) => e.target.select()}
-                        placeholder="Ingrese la cuota inicial total en pesos"
+                        placeholder="Ingrese la cuota inicial en pesos"
                       />
                     </div>
                   </div>
@@ -1119,7 +1119,7 @@ const SalesPlanConfig = () => {
                       }
                       
                       if (newModelTotalInitial <= 0) {
-                        toast.error("Ingrese una cuota inicial total válida");
+                        toast.error("Ingrese una cuota inicial válida");
                         return;
                       }
                       
@@ -1218,31 +1218,40 @@ const SalesPlanConfig = () => {
 
                   {newModelAmortizationTable.length > 0 && (
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                        <span className="font-semibold">Cuota Inicial Total: ({newModelInitialPercent.toFixed(1)}%)</span>
-                        <span className="text-lg font-bold text-primary">
-                          ${newModelTotalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                        </span>
+                      {/* Mostrar el % que representa la cuota inicial sobre el precio base */}
+                      <div className="text-sm text-center text-muted-foreground">
+                        La Cuota Inicial representa el <span className="font-semibold text-primary">{newModelInitialPercent.toFixed(2)}%</span> del Precio Base
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                          <span className="text-sm text-muted-foreground">Cuota I. Ingresada</span>
-                          <div className="text-base font-semibold text-purple-700 dark:text-purple-400">
+
+                      {/* Cuadro principal con Cuota Inicial y Cuota FS */}
+                      <div className="p-4 border rounded-lg bg-background space-y-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="font-semibold">Cuota Inicial: </span>
+                            <span className="text-xs text-muted-foreground">({newModelInitialPercent.toFixed(1)}%)</span>
+                          </div>
+                          <span className="text-lg font-bold">
                             ${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            (Cuota manual del asesor)
-                          </div>
+                          </span>
                         </div>
                         
-                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                          <span className="text-sm text-muted-foreground">Cuota Fondo (Tipo {newModelClientType})</span>
-                          <div className="text-base font-semibold text-blue-700 dark:text-blue-400">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold">Cuota FS</span>
+                          <span className="text-lg font-bold">
                             ${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            ({clientTypeConfig[newModelClientType].ci}% del valor a financiar)
+                          </span>
+                        </div>
+
+                        <div className="text-sm text-muted-foreground text-center pt-2 border-t">
+                          Tipo {newModelClientType}: {clientTypeConfig[newModelClientType].ci}%
+                        </div>
+
+                        <div className="pt-3 border-t">
+                          <div className="text-center">
+                            <div className="text-sm text-muted-foreground mb-1">Cuota Inicial Final:</div>
+                            <div className="text-2xl font-bold text-primary">
+                              ${newModelTotalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </div>
                           </div>
                         </div>
                       </div>
