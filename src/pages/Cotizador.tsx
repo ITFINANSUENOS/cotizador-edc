@@ -37,6 +37,9 @@ const Cotizador = () => {
   const [creditoFSTotalInitial, setCreditoFSTotalInitial] = useState(0);
   const [creditoFSRateType, setCreditoFSRateType] = useState<'mensual' | 'retanqueo'>('mensual');
   const [creditoFSFondoCuota, setCreditoFSFondoCuota] = useState(0);
+  const [creditoFSAmortizationTable, setCreditoFSAmortizationTable] = useState<any[]>([]);
+  const [creditoFSDiscountPercent, setCreditoFSDiscountPercent] = useState(0);
+  const [creditoFSDiscountAmount, setCreditoFSDiscountAmount] = useState(0);
   
   // Resetear valores cuando cambia el tipo de venta
   const handleSaleTypeChange = (newType: "contado" | "credicontado" | "credito" | "convenio" | "creditofs") => {
@@ -60,6 +63,9 @@ const Cotizador = () => {
     setCreditoFSTermType('');
     setCreditoFSTotalInitial(0);
     setCreditoFSFondoCuota(0);
+    setCreditoFSAmortizationTable([]);
+    setCreditoFSDiscountPercent(0);
+    setCreditoFSDiscountAmount(0);
     
     if (newType === "contado") {
       setInstallments(1);
@@ -564,6 +570,8 @@ const Cotizador = () => {
           
           // 7. Guardar valores para mostrar
           setCreditoFSFondoCuota(cuotaFSRedondeada); // Esta es la Cuota FS
+          setCreditoFSDiscountPercent(discountPercent);
+          setCreditoFSDiscountAmount(discountAmount);
           
           // Usar tasa mensual para corto plazo
           const interestRate = monthlyRate / 100;
@@ -576,10 +584,40 @@ const Cotizador = () => {
           const n = installments;
           const fixedPaymentWithoutExtras = financedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
           
-          const seguro1Value = fixedPaymentWithoutExtras * (seguro1 / 100);
-          const seguro2Value = (financedAmount * seguro2Formula) / 1000;
+          const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
+          const seguro2Monthly = (financedAmount * seguro2Formula) / 1000;
           
-          monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Value + seguro2Value;
+          // Generar tabla de amortización
+          let balance = financedAmount;
+          const amortTable = [];
+          
+          for (let i = 1; i <= installments; i++) {
+            const interest = balance * interestRate;
+            const principal = fixedPaymentWithoutExtras - interest;
+            
+            const seguro1Row = fixedPaymentWithoutExtras * (seguro1 / 100);
+            const seguro2Row = (balance * seguro2Formula) / 1000;
+            
+            const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Row + seguro2Row;
+            
+            amortTable.push({
+              month: i,
+              balance: balance,
+              principal: principal,
+              interest: interest,
+              tecAdm: tecAdmPerMonth,
+              fga: fgaPerMonth,
+              seguro1: seguro1Row,
+              seguro2: seguro2Row,
+              payment: totalPayment
+            });
+            
+            balance -= principal;
+          }
+          
+          setCreditoFSAmortizationTable(amortTable);
+          
+          monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
           basePrice = discountedPrice;
           totalPrice = discountedPrice;
           remainingBalance = financedAmount;
@@ -599,10 +637,40 @@ const Cotizador = () => {
           const n = installments;
           const fixedPaymentWithoutExtras = basePriceFS * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
           
-          const seguro1Value = fixedPaymentWithoutExtras * (seguro1 / 100);
-          const seguro2Value = (basePriceFS * seguro2Formula) / 1000;
+          const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
+          const seguro2Monthly = (basePriceFS * seguro2Formula) / 1000;
           
-          monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Value + seguro2Value;
+          // Generar tabla de amortización
+          let balance = basePriceFS;
+          const amortTable = [];
+          
+          for (let i = 1; i <= installments; i++) {
+            const interest = balance * interestRate;
+            const principal = fixedPaymentWithoutExtras - interest;
+            
+            const seguro1Row = fixedPaymentWithoutExtras * (seguro1 / 100);
+            const seguro2Row = (balance * seguro2Formula) / 1000;
+            
+            const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Row + seguro2Row;
+            
+            amortTable.push({
+              month: i,
+              balance: balance,
+              principal: principal,
+              interest: interest,
+              tecAdm: tecAdmPerMonth,
+              fga: fgaPerMonth,
+              seguro1: seguro1Row,
+              seguro2: seguro2Row,
+              payment: totalPayment
+            });
+            
+            balance -= principal;
+          }
+          
+          setCreditoFSAmortizationTable(amortTable);
+          
+          monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
           totalPrice = basePriceFS;
           remainingBalance = basePriceFS;
         }
@@ -1572,6 +1640,156 @@ const Cotizador = () => {
                   </CollapsibleContent>
                 </Collapsible>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Resultado - Para Crédito FS */}
+        {quote && saleType === "creditofs" && creditoFSAmortizationTable.length > 0 && (
+          <Card className="border-primary">
+            <CardHeader>
+              <CardTitle className="flex items-center text-primary">
+                <FileText className="w-5 h-5 mr-2" />
+                Resultado de Cotización - Crédito FS
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {creditoFSTermType === 'corto' && (
+                <>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Precio Base:</span>
+                    <span className="font-bold">${quote.totalPrice.toLocaleString()}</span>
+                  </div>
+                  {creditoFSDiscountPercent > 0 && (
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="font-medium">Descuento ({creditoFSDiscountPercent}%):</span>
+                      <span className="font-bold text-green-600">-${creditoFSDiscountAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Nueva Base FS:</span>
+                    <span className="font-bold text-primary">${quote.basePrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Cuota Inicial (Ajustada):</span>
+                    <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Cuota FS:</span>
+                    <span className="font-bold text-accent">${creditoFSFondoCuota.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Cuota Inicial Total:</span>
+                    <span className="font-bold text-primary">${creditoFSTotalInitial.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Valor a Financiar:</span>
+                    <span className="font-bold">${quote.remainingBalance.toLocaleString()}</span>
+                  </div>
+                </>
+              )}
+              
+              {creditoFSTermType === 'largo' && (
+                <>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Precio Base:</span>
+                    <span className="font-bold">${quote.totalPrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Cuota Inicial:</span>
+                    <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Tasa:</span>
+                    <span className="font-bold">{creditoFSRateType === 'mensual' ? 'Mensual' : 'Retanqueo'}</span>
+                  </div>
+                </>
+              )}
+              
+              <div className="flex justify-between py-2 border-b">
+                <span className="font-medium">Número de Cuotas:</span>
+                <span className="font-bold">{quote.installments}</span>
+              </div>
+              <div className="flex justify-between py-3 bg-accent/10 px-4 rounded-lg">
+                <span className="font-bold text-lg">Cuota Mensual:</span>
+                <span className="font-bold text-xl text-accent">${(Math.ceil(quote.monthlyPayment / 1000) * 1000).toLocaleString()}</span>
+              </div>
+              
+              {/* Tabla de Amortización */}
+              <Collapsible open={showAmortization} onOpenChange={setShowAmortization}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="w-full mt-4">
+                    {showAmortization ? (
+                      <>
+                        <ChevronUp className="w-4 h-4 mr-2" />
+                        Ocultar Amortización
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4 mr-2" />
+                        Ver Tabla de Amortización
+                      </>
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-4">
+                  {showAmortization && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted">
+                          <tr>
+                            <th className="p-2 text-left">Mes</th>
+                            <th className="p-2 text-right">Saldo</th>
+                            <th className="p-2 text-right">Capital</th>
+                            <th className="p-2 text-right">Interés</th>
+                            <th className="p-2 text-right">Tec/Adm</th>
+                            <th className="p-2 text-right">FGA</th>
+                            <th className="p-2 text-right">Seg. 1</th>
+                            <th className="p-2 text-right">Seg. 2</th>
+                            <th className="p-2 text-right">Cuota</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {creditoFSAmortizationTable.map((row) => (
+                            <tr key={row.month} className="border-b">
+                              <td className="p-2">{row.month}</td>
+                              <td className="p-2 text-right">${row.balance.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                              <td className="p-2 text-right">${row.principal.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                              <td className="p-2 text-right">${row.interest.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                              <td className="p-2 text-right">${row.tecAdm.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                              <td className="p-2 text-right">${row.fga.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                              <td className="p-2 text-right">${row.seguro1.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                              <td className="p-2 text-right">${row.seguro2.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                              <td className="p-2 text-right font-bold">${row.payment.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-muted font-bold">
+                          <tr>
+                            <td className="p-2" colSpan={3}>TOTAL</td>
+                            <td className="p-2 text-right">
+                              ${creditoFSAmortizationTable.reduce((sum, row) => sum + row.interest, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </td>
+                            <td className="p-2 text-right">
+                              ${creditoFSAmortizationTable.reduce((sum, row) => sum + row.tecAdm, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </td>
+                            <td className="p-2 text-right">
+                              ${creditoFSAmortizationTable.reduce((sum, row) => sum + row.fga, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </td>
+                            <td className="p-2 text-right">
+                              ${creditoFSAmortizationTable.reduce((sum, row) => sum + row.seguro1, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </td>
+                            <td className="p-2 text-right">
+                              ${creditoFSAmortizationTable.reduce((sum, row) => sum + row.seguro2, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </td>
+                            <td className="p-2 text-right"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
             </CardContent>
           </Card>
         )}
