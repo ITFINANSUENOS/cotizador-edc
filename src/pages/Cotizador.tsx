@@ -256,6 +256,10 @@ const Cotizador = () => {
     let totalPrice = 0;
     let monthlyPayment = 0;
     let remainingBalance = 0;
+    
+    // Variables para almacenar datos de Crédito FS
+    let creditoFSData: any = undefined;
+    let creditoFSDataLargo: any = undefined;
 
     switch (saleType) {
       case "contado":
@@ -615,13 +619,21 @@ const Cotizador = () => {
             balance -= principal;
           }
           
-          setCreditoFSAmortizationTable(amortTable);
+          // NO establecer el estado aquí, lo haremos al final junto con quote
           
           monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
           basePrice = discountedPrice;
           totalPrice = discountedPrice;
           remainingBalance = financedAmount;
-          setInitialPayment(cuotaInicialCalculadaRedondeada); // Guardar la CI ajustada
+          
+          // Guardar tabla y valores para incluir en quote
+          creditoFSData = {
+            amortizationTable: amortTable,
+            cuotaInicialAjustada: cuotaInicialCalculadaRedondeada,
+            discountPercent,
+            discountAmount,
+            cuotaFS: cuotaFSRedondeada
+          };
           
         } else if (creditoFSTermType === 'largo') {
           // Lógica para largo plazo
@@ -671,19 +683,27 @@ const Cotizador = () => {
             balance -= principal;
           }
           
-          setCreditoFSAmortizationTable(amortTable);
+          // NO establecer el estado aquí, lo haremos al final junto con quote
           
           monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
           totalPrice = basePriceFS;
           remainingBalance = valorAFinanciar;
+          
+          // Guardar tabla para incluir en quote
+          creditoFSDataLargo = {
+            amortizationTable: amortTable
+          };
         }
         break;
     }
 
-    setQuote({
+    // Preparar objeto quote con todos los datos necesarios
+    const quoteData: any = {
       basePrice,
       totalPrice,
-      initialPayment: saleType === "credito" && inicialMayor ? inicialMayorValue : initialPayment,
+      initialPayment: saleType === "credito" && inicialMayor ? inicialMayorValue : 
+                      saleType === "creditofs" && creditoFSTermType === 'corto' && (typeof creditoFSData !== 'undefined') ? creditoFSData.cuotaInicialAjustada : 
+                      initialPayment,
       remainingBalance,
       installments,
       monthlyPayment,
@@ -692,10 +712,34 @@ const Cotizador = () => {
       productId: selectedProduct.id,
       originalBasePrice: saleType === "credito" && (inicialMayor || retanqueoEdC || retanqueoFS) ? Number(productPrices[0].credit_price || productPrices[0].list_1_price) : basePrice,
       saldoArpesod: retanqueoEdC ? saldoArpesod : 0,
-      nuevaBaseFS: retanqueoEdC ? basePrice : 0, // Usar basePrice que ya tiene el valor calculado
+      nuevaBaseFS: retanqueoEdC ? basePrice : 0,
       saldoFinansuenos: retanqueoFS ? saldoFinansuenos : 0,
-      baseFinalFS: retanqueoFS ? basePrice : 0 // Base final después del retanqueo FS a FS
-    });
+      baseFinalFS: retanqueoFS ? basePrice : 0
+    };
+    
+    // Agregar datos específicos de Crédito FS si aplica
+    if (saleType === "creditofs") {
+      if (creditoFSTermType === 'corto' && typeof creditoFSData !== 'undefined') {
+        quoteData.creditoFSAmortizationTable = creditoFSData.amortizationTable;
+        quoteData.creditoFSDiscountPercent = creditoFSData.discountPercent;
+        quoteData.creditoFSDiscountAmount = creditoFSData.discountAmount;
+        quoteData.creditoFSCuotaFS = creditoFSData.cuotaFS;
+        
+        // Actualizar estados para mantener compatibilidad con código existente
+        setCreditoFSAmortizationTable(creditoFSData.amortizationTable);
+        setCreditoFSDiscountPercent(creditoFSData.discountPercent);
+        setCreditoFSDiscountAmount(creditoFSData.discountAmount);
+        setCreditoFSFondoCuota(creditoFSData.cuotaFS);
+        setInitialPayment(creditoFSData.cuotaInicialAjustada);
+      } else if (creditoFSTermType === 'largo' && typeof creditoFSDataLargo !== 'undefined') {
+        quoteData.creditoFSAmortizationTable = creditoFSDataLargo.amortizationTable;
+        
+        // Actualizar estado
+        setCreditoFSAmortizationTable(creditoFSDataLargo.amortizationTable);
+      }
+    }
+    
+    setQuote(quoteData);
 
     // Mostrar formulario de cliente según el tipo de venta
     if (saleType === "contado" || saleType === "convenio" || saleType === "credicontado" || saleType === "credito" || saleType === "creditofs") {
@@ -1648,7 +1692,7 @@ const Cotizador = () => {
         )}
 
         {/* Resultado - Para Crédito FS */}
-        {quote && saleType === "creditofs" && creditoFSAmortizationTable.length > 0 && (
+        {quote && saleType === "creditofs" && quote.creditoFSAmortizationTable && quote.creditoFSAmortizationTable.length > 0 && (
           <Card className="border-primary">
             <CardHeader>
               <CardTitle className="flex items-center text-primary">
@@ -1735,7 +1779,7 @@ const Cotizador = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {creditoFSAmortizationTable.map((row) => (
+                          {quote.creditoFSAmortizationTable.map((row: any) => (
                             <tr key={row.month} className="border-b">
                               <td className="p-2">{row.month}</td>
                               <td className="p-2 text-right">${row.balance.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
@@ -1753,19 +1797,19 @@ const Cotizador = () => {
                           <tr>
                             <td className="p-2" colSpan={3}>TOTAL</td>
                             <td className="p-2 text-right">
-                              ${creditoFSAmortizationTable.reduce((sum, row) => sum + row.interest, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              ${quote.creditoFSAmortizationTable.reduce((sum: number, row: any) => sum + row.interest, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                             </td>
                             <td className="p-2 text-right">
-                              ${creditoFSAmortizationTable.reduce((sum, row) => sum + row.tecAdm, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              ${quote.creditoFSAmortizationTable.reduce((sum: number, row: any) => sum + row.tecAdm, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                             </td>
                             <td className="p-2 text-right">
-                              ${creditoFSAmortizationTable.reduce((sum, row) => sum + row.fga, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              ${quote.creditoFSAmortizationTable.reduce((sum: number, row: any) => sum + row.fga, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                             </td>
                             <td className="p-2 text-right">
-                              ${creditoFSAmortizationTable.reduce((sum, row) => sum + row.seguro1, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              ${quote.creditoFSAmortizationTable.reduce((sum: number, row: any) => sum + row.seguro1, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                             </td>
                             <td className="p-2 text-right">
-                              ${creditoFSAmortizationTable.reduce((sum, row) => sum + row.seguro2, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              ${quote.creditoFSAmortizationTable.reduce((sum: number, row: any) => sum + row.seguro2, 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                             </td>
                             <td className="p-2 text-right"></td>
                           </tr>
