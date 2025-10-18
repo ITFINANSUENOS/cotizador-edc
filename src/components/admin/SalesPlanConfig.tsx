@@ -1277,7 +1277,8 @@ const SalesPlanConfig = () => {
                       // Usar tasa mensual para corto plazo
                       const interestRate = newModelMonthlyRate / 100;
                       const tecAdmPerMonth = (discountedPrice * (newModelTecAdm / 100)) / newModelInstallments;
-                      const fgaPerMonth = discountedPrice * (clientConfig.fga / 100);
+                      // FGA se calcula sobre el Valor a Financiar, no sobre el Precio Base
+                      const fgaPerMonth = disbursedAmount * (clientConfig.fga / 100);
                       
                       // Calcular cuota base usando sistema francés
                       const r = interestRate;
