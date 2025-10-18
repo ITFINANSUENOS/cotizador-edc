@@ -1006,6 +1006,17 @@ const Cotizador = () => {
                 </TabsContent>
 
                 <TabsContent value="creditofs" className="space-y-4 mt-4">
+                  {!quote && (
+                    <div className="p-4 bg-accent/10 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">Base FINANSUEÑOS:</span>
+                        <span className="text-xl font-bold text-primary">
+                          ${Number(productPrices[0].credit_price || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Plazo</Label>
                     <div className="flex gap-4 items-center">
