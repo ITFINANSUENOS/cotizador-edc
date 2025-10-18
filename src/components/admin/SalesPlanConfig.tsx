@@ -1198,6 +1198,11 @@ const SalesPlanConfig = () => {
                         return;
                       }
                       
+                      // Función para redondear a la centena superior cerrada en 0, 500 o 1000
+                      const roundToNearestFiveHundred = (value: number): number => {
+                        return Math.ceil(value / 500) * 500;
+                      };
+                      
                       const basePrice = newModelBasePrice;
                       const clientConfig = clientTypeConfig[newModelClientType];
                       
@@ -1233,19 +1238,30 @@ const SalesPlanConfig = () => {
                       const discountAmount = basePrice * (discountPercent / 100);
                       const discountedPrice = basePrice - discountAmount;
                       
-                      // 4. Restar cuota inicial ingresada = Valor a financiar (base para calcular Cuota FS)
-                      const financedAmount = discountedPrice - newModelTotalInitial;
+                      // 4. NUEVA LÓGICA: Calcular CI_nueva para que CI_nueva + Cuota_FS = Cuota Inicial Total
+                      // Fórmula: CI_nueva = (Cuota Inicial Total - Nueva Base FS * % FGA) / (1 - % FGA)
+                      const fgaPercent = clientConfig.fga / 100;
+                      const cuotaInicialCalculada = (newModelTotalInitial - discountedPrice * fgaPercent) / (1 - fgaPercent);
                       
-                      // 5. Calcular Fondo (% según tipo de cliente) sobre el valor a financiar
-                      const minimumInitial = financedAmount * (clientConfig.ci / 100);
+                      // Redondear la cuota inicial calculada
+                      const cuotaInicialCalculadaRedondeada = roundToNearestFiveHundred(cuotaInicialCalculada);
                       
-                      // 6. La Cuota Inicial ingresada por el asesor (sin restar nada)
-                      const additionalInitial = newModelTotalInitial;
+                      // 5. Calcular Valor a Financiar basado en la nueva CI calculada
+                      const financedAmount = discountedPrice - cuotaInicialCalculadaRedondeada;
+                      const financedAmountRedondeado = roundToNearestFiveHundred(financedAmount);
                       
-                      // 7. La Cuota Inicial Final Total es la SUMA de Cuota Inicial + Cuota FS
-                      const totalFinalInitial = newModelTotalInitial + minimumInitial;
+                      // 6. Calcular Cuota FS basado en el Valor a Financiar
+                      const cuotaFS = financedAmountRedondeado * fgaPercent;
+                      const cuotaFSRedondeada = roundToNearestFiveHundred(cuotaFS);
                       
-                      // 8. Calcular % de la Cuota Inicial ingresada sobre Precio Base
+                      // 7. Verificar que la suma de CI_nueva + Cuota_FS = Cuota Inicial Total
+                      const cuotaInicialTotalCalculada = cuotaInicialCalculadaRedondeada + cuotaFSRedondeada;
+                      
+                      // 8. Guardar valores para mostrar
+                      const additionalInitial = cuotaInicialCalculadaRedondeada; // Esta es la CI nueva
+                      const minimumInitial = cuotaFSRedondeada; // Esta es la Cuota FS
+                      
+                      // 9. Calcular % de la Cuota Inicial ingresada sobre Precio Base
                       const totalInitialPercent = (newModelTotalInitial / basePrice) * 100;
                       
                       // Guardar valores calculados para mostrar en UI
@@ -1255,8 +1271,8 @@ const SalesPlanConfig = () => {
                       setNewModelDiscountPercent(discountPercent);
                       setNewModelDiscountAmount(discountAmount);
                       setNewModelNewBaseFS(discountedPrice);
-                      setNewModelFinancedAmount(financedAmount);
-                      const disbursedAmount = financedAmount;
+                      setNewModelFinancedAmount(financedAmountRedondeado);
+                      const disbursedAmount = financedAmountRedondeado;
                       
                       // Usar tasa mensual para corto plazo
                       const interestRate = newModelMonthlyRate / 100;
@@ -1298,7 +1314,7 @@ const SalesPlanConfig = () => {
                       setNewModelAmortizationTable(table);
                       
                       if (discountPercent > 0) {
-                        toast.success(`Descuento del ${discountPercent}% aplicado. Cuota inicial: ${initialPercent.toFixed(2)}%`);
+                        toast.success(`Descuento del ${discountPercent}% aplicado. Cuota inicial ingresada: ${initialPercent.toFixed(2)}%`);
                       }
                     }}
                     className="w-full"
@@ -1309,12 +1325,12 @@ const SalesPlanConfig = () => {
 
                   {newModelAmortizationTable.length > 0 && (
                     <div className="space-y-4">
-                      {/* Cuadro con Cuota Inicial y Cuota FS en la misma línea */}
+                      {/* Cuadro con Cuota Inicial Calculada y Cuota FS en la misma línea */}
                       <div className="p-3 border rounded-lg">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <div className="font-semibold text-sm mb-1">
-                              Cuota Inicial: <span className="text-xs text-muted-foreground">({newModelInitialPercent.toFixed(1)}%)</span>
+                              Cuota Inicial: <span className="text-xs text-muted-foreground">(Ajustada)</span>
                             </div>
                             <div className="text-lg font-bold">
                               ${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
@@ -1324,7 +1340,7 @@ const SalesPlanConfig = () => {
                           <div>
                             <div className="font-semibold text-sm mb-1">
                               <span>Cuota FS </span>
-                              <span className="text-xs text-muted-foreground">(Tipo {newModelClientType}: {clientTypeConfig[newModelClientType].ci}%)</span>
+                              <span className="text-xs text-muted-foreground">(Tipo {newModelClientType}: {clientTypeConfig[newModelClientType].fga}%)</span>
                             </div>
                             <div className="text-lg font-bold">
                               ${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
@@ -1336,7 +1352,7 @@ const SalesPlanConfig = () => {
                       <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
                         <span className="font-semibold">Cuota Inicial Total:</span>
                         <span className="text-lg font-bold text-primary">
-                          ${(newModelTotalInitial + newModelMinimumInitial).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                          ${(newModelAdditionalInitial + newModelMinimumInitial).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                         </span>
                       </div>
                       
@@ -1454,18 +1470,17 @@ const SalesPlanConfig = () => {
                             header.innerHTML = `
                               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                                 <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
-                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial:</div>
+                                  <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial (Ajustada):</div>
                                   <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${newModelAdditionalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
-                                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">(${newModelInitialPercent.toFixed(1)}%)</div>
                                 </div>
                                 <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
                                   <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota FS</div>
                                   <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${newModelMinimumInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
-                                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">(Tipo ${newModelClientType}: ${clientTypeConfig[newModelClientType].ci}%)</div>
+                                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">(Tipo ${newModelClientType}: ${clientTypeConfig[newModelClientType].fga}%)</div>
                                 </div>
                                 <div style="background: #f3f4f6; padding: 10px; border-radius: 6px;">
                                   <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Cuota Inicial Total</div>
-                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${(newModelTotalInitial + newModelMinimumInitial).toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #1f2937;">$${(newModelAdditionalInitial + newModelMinimumInitial).toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
                                 </div>
                               </div>
                               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
