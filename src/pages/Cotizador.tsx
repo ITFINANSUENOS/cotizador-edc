@@ -1006,15 +1006,6 @@ const Cotizador = () => {
                 </TabsContent>
 
                 <TabsContent value="creditofs" className="space-y-4 mt-4">
-                  <div className="p-4 bg-accent/10 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Base FINANSUEÑOS:</span>
-                      <span className="text-xl font-bold text-primary">
-                        ${Number(productPrices[0].credit_price || 0).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Plazo</Label>
                     <div className="flex gap-4 items-center">
@@ -1222,18 +1213,13 @@ const Cotizador = () => {
                   {/* Información adicional - Solo para Crédito FS */}
                   {saleType === "creditofs" && quote && creditoFSTotalInitial > 0 && (
                     <div className="mt-4 space-y-3">
-                      {/* Porcentaje de la cuota inicial respecto al precio base */}
-                      <div className="text-sm text-muted-foreground text-center">
-                        Cuota Inicial Total: {((creditoFSTotalInitial / (productPrices[0]?.credit_price || 1)) * 100).toFixed(1)}% del Precio Base
-                      </div>
-                      
                       {/* Cuadro de resumen */}
                       <div className="p-3 bg-accent/10 rounded-lg border border-primary/20">
                         <div className="grid grid-cols-2 gap-3">
-                          {/* Cuota Inicial (Ajustada) */}
+                          {/* Cuota Inicial */}
                           <div className="space-y-1">
                             <div className="text-sm font-medium">
-                              Cuota Inicial <span className="text-xs text-muted-foreground">(Ajustada)</span>
+                              Cuota Inicial
                             </div>
                             <div className="text-base font-semibold">
                               ${quote.initialPayment.toLocaleString()}
@@ -1243,13 +1229,7 @@ const Cotizador = () => {
                           {/* Cuota FS */}
                           <div className="space-y-1">
                             <div className="text-sm font-medium">
-                              Cuota FS <span className="text-xs text-muted-foreground">
-                                (Tipo {creditoFSClientType}: {
-                                  creditoFSClientType === 'AAA' || creditoFSClientType === 'AA' ? '0%' :
-                                  creditoFSClientType === 'A' || creditoFSClientType === 'BBB' ? '5%' :
-                                  '10%'
-                                })
-                              </span>
+                              Cuota FS
                             </div>
                             <div className="text-base font-semibold text-accent">
                               ${creditoFSFondoCuota.toLocaleString()}
@@ -1518,7 +1498,7 @@ const Cotizador = () => {
                     <span className="font-bold text-orange-600">${quote.saldoArpesod.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Nueva Base FS:</span>
+                    <span className="font-medium">Base FS:</span>
                     <span className="font-bold text-primary">${Math.round(quote.nuevaBaseFS).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
@@ -1590,7 +1570,7 @@ const Cotizador = () => {
                     <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Nueva Base FS:</span>
+                    <span className="font-medium">Base FS:</span>
                     <span className="font-bold text-primary">${quote.basePrice.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
@@ -1701,11 +1681,11 @@ const Cotizador = () => {
               {creditoFSTermType === 'corto' && (
                 <>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Nueva Base FS:</span>
+                    <span className="font-medium">Base FS:</span>
                     <span className="font-bold text-primary">${quote.basePrice.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Cuota Inicial (Ajustada):</span>
+                    <span className="font-medium">Cuota Inicial:</span>
                     <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
