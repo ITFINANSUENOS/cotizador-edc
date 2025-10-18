@@ -575,7 +575,7 @@ const Cotizador = () => {
           
           // Usar tasa mensual para corto plazo
           const interestRate = monthlyRate / 100;
-          const tecAdmPerMonth = (discountedPrice * (tecAdm / 100)) / installments;
+          const tecAdmPerMonth = (financedAmount * (tecAdm / 100)) / installments;
           // FGA se calcula sobre el Valor a Financiar, no sobre el Precio Base
           const fgaPerMonth = financedAmount * (clientConfig.fga / 100);
           
@@ -628,20 +628,23 @@ const Cotizador = () => {
           const initialPaymentCalc = basePriceFS * (clientConfig.ci / 100);
           setInitialPayment(initialPaymentCalc);
           
+          // Valor a Financiar = Precio Base - Cuota Inicial
+          const valorAFinanciar = basePriceFS - initialPaymentCalc;
+          
           const interestRate = creditoFSRateType === 'mensual' ? monthlyRate / 100 : retanqueoRate / 100;
-          const tecAdmPerMonth = (basePriceFS * (tecAdm / 100)) / installments;
-          const fgaPerMonth = basePriceFS * (clientConfig.fga / 100);
+          const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / installments;
+          const fgaPerMonth = valorAFinanciar * (clientConfig.fga / 100);
           
           // Calcular cuota base usando sistema francés
           const r = interestRate;
           const n = installments;
-          const fixedPaymentWithoutExtras = basePriceFS * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+          const fixedPaymentWithoutExtras = valorAFinanciar * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
           
           const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
-          const seguro2Monthly = (basePriceFS * seguro2Formula) / 1000;
+          const seguro2Monthly = (valorAFinanciar * seguro2Formula) / 1000;
           
           // Generar tabla de amortización
-          let balance = basePriceFS;
+          let balance = valorAFinanciar;
           const amortTable = [];
           
           for (let i = 1; i <= installments; i++) {
@@ -672,7 +675,7 @@ const Cotizador = () => {
           
           monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
           totalPrice = basePriceFS;
-          remainingBalance = basePriceFS;
+          remainingBalance = valorAFinanciar;
         }
         break;
     }

@@ -1276,7 +1276,7 @@ const SalesPlanConfig = () => {
                       
                       // Usar tasa mensual para corto plazo
                       const interestRate = newModelMonthlyRate / 100;
-                      const tecAdmPerMonth = (discountedPrice * (newModelTecAdm / 100)) / newModelInstallments;
+                      const tecAdmPerMonth = (disbursedAmount * (newModelTecAdm / 100)) / newModelInstallments;
                       // FGA se calcula sobre el Valor a Financiar, no sobre el Precio Base
                       const fgaPerMonth = disbursedAmount * (clientConfig.fga / 100);
                       
@@ -1650,16 +1650,19 @@ const SalesPlanConfig = () => {
                       // Calcular amortización con la base ajustada
                       const disbursedAmount = adjustedBasePrice;
                       
-                      const interestRate = newModelRateType === 'mensual' ? newModelMonthlyRate / 100 : newModelRetanqueoRate / 100;
-                      const tecAdmPerMonth = (adjustedBasePrice * (newModelTecAdm / 100)) / newModelInstallments;
-                      const fgaPerMonth = adjustedBasePrice * (clientConfig.fga / 100);
+                      // Valor a Financiar = Precio Base Ajustado - Cuota Inicial (cuotaFS o inicial mayor)
+                      const valorAFinanciar = adjustedBasePrice - finalInitialPayment;
                       
-                      // Calcular cuota base (capital + interés) usando sistema francés
+                      const interestRate = newModelRateType === 'mensual' ? newModelMonthlyRate / 100 : newModelRetanqueoRate / 100;
+                      const tecAdmPerMonth = (valorAFinanciar * (newModelTecAdm / 100)) / newModelInstallments;
+                      const fgaPerMonth = valorAFinanciar * (clientConfig.fga / 100);
+                      
+                      // Calcular cuota base (capital + interés) usando sistema francés sobre el Valor a Financiar
                       const r = interestRate;
                       const n = newModelInstallments;
-                      const fixedPaymentWithoutExtras = disbursedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+                      const fixedPaymentWithoutExtras = valorAFinanciar * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
                       
-                      let balance = disbursedAmount;
+                      let balance = valorAFinanciar;
                       const table = [];
                       
                       for (let i = 1; i <= newModelInstallments; i++) {
