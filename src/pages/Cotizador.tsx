@@ -1013,9 +1013,6 @@ const Cotizador = () => {
                         ${Number(productPrices[0].credit_price || 0).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Nuevo modelo de crédito con tasas y seguros
-                    </p>
                   </div>
 
                   <div className="space-y-2">
