@@ -1657,30 +1657,12 @@ const Cotizador = () => {
               {creditoFSTermType === 'corto' && (
                 <>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Precio Base:</span>
-                    <span className="font-bold">${quote.totalPrice.toLocaleString()}</span>
-                  </div>
-                  {creditoFSDiscountPercent > 0 && (
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="font-medium">Descuento ({creditoFSDiscountPercent}%):</span>
-                      <span className="font-bold text-green-600">-${creditoFSDiscountAmount.toLocaleString()}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Nueva Base FS:</span>
                     <span className="font-bold text-primary">${quote.basePrice.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Cuota Inicial (Ajustada):</span>
                     <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Cuota FS:</span>
-                    <span className="font-bold text-accent">${creditoFSFondoCuota.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Cuota Inicial Total:</span>
-                    <span className="font-bold text-primary">${creditoFSTotalInitial.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Valor a Financiar:</span>
