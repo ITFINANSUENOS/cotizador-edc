@@ -36,7 +36,6 @@ const Cotizador = () => {
   const [creditoFSClientType, setCreditoFSClientType] = useState<string>('AAA');
   const [creditoFSTotalInitial, setCreditoFSTotalInitial] = useState(0);
   const [creditoFSRateType, setCreditoFSRateType] = useState<'mensual' | 'retanqueo'>('mensual');
-  const [creditoFSClientWillingToPay, setCreditoFSClientWillingToPay] = useState(0);
   const [creditoFSFondoCuota, setCreditoFSFondoCuota] = useState(0);
   
   // Resetear valores cuando cambia el tipo de venta
@@ -60,7 +59,6 @@ const Cotizador = () => {
     setClientPhone("");
     setCreditoFSTermType('');
     setCreditoFSTotalInitial(0);
-    setCreditoFSClientWillingToPay(0);
     setCreditoFSFondoCuota(0);
     
     if (newType === "contado") {
@@ -485,58 +483,93 @@ const Cotizador = () => {
         const seguro1 = 4; // Valor por defecto
         const seguro2Formula = 0.17; // Valor por defecto
         
+        // Función para redondear a la centena superior cerrada en 0, 500 o 1000
+        const roundToNearestFiveHundred = (value: number): number => {
+          return Math.ceil(value / 500) * 500;
+        };
+        
         if (creditoFSTermType === 'corto') {
-          // Lógica para corto plazo
+          // Lógica para corto plazo - NUEVA IMPLEMENTACIÓN
           if (creditoFSTotalInitial <= 0) {
             toast.error("Por favor ingrese una cuota inicial válida");
             return;
           }
           
-          // Rangos de descuento por defecto
-          const discountRanges = [
-            { minPercent: 65, maxPercent: 100, discount: 25 },
-            { minPercent: 50, maxPercent: 64.999, discount: 20 },
-            { minPercent: 40, maxPercent: 49.999, discount: 15 },
-            { minPercent: 30, maxPercent: 39.999, discount: 10 },
+          // Cargar rangos de descuento desde la base de datos
+          const { data: discountRangesData } = await supabase
+            .from("discount_ranges_history")
+            .select("*")
+            .eq("plan_type", "nuevo_modelo_credito")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+          
+          let discountRanges = [
+            { minPercent: 0, maxPercent: 0, discount: 0 },
+            { minPercent: 24.999, maxPercent: 44.999, discount: 15 },
+            { minPercent: 45, maxPercent: 64.999, discount: 17 },
           ];
           
-          // 1. Calcular cuota inicial basada en lo que el cliente está dispuesto a pagar
-          const clientAdditional = creditoFSClientWillingToPay;
+          if (discountRangesData?.ranges) {
+            discountRanges = discountRangesData.ranges as any[];
+          }
           
-          // 2. Calcular porcentaje de cuota adicional respecto a Base FS
-          const initialPercent = (clientAdditional / basePriceFS) * 100;
+          // 1. Calcular el % que representa la Cuota Inicial ingresada sobre el Precio Base
+          const initialPercent = (creditoFSTotalInitial / basePriceFS) * 100;
           
-          // 3. Determinar descuento aplicable
+          // Ordenar rangos por minPercent ascendente
+          const sortedRanges = [...discountRanges].sort((a: any, b: any) => a.minPercent - b.minPercent);
+          const minRange = sortedRanges[0];
+          const maxRange = sortedRanges[sortedRanges.length - 1];
+          
+          // Validar si el porcentaje está fuera de los rangos
+          if (initialPercent < minRange.minPercent) {
+            toast.error("Valor bajo, no aplica descuentos");
+            return;
+          }
+          
+          if (initialPercent > maxRange.maxPercent) {
+            toast.error("Inicial muy alta. Revisar precio Contado");
+            return;
+          }
+          
+          // 2. Determinar el descuento aplicable según el %
           let discountPercent = 0;
           for (const range of discountRanges) {
-            if (initialPercent >= range.minPercent && initialPercent <= range.maxPercent) {
-              discountPercent = range.discount;
+            if (initialPercent >= (range as any).minPercent && initialPercent <= (range as any).maxPercent) {
+              discountPercent = (range as any).discount;
               break;
             }
           }
           
-          // 4. Calcular descuento y Nueva Base FS
+          // 3. Calcular descuento y Nueva Base FS (Precio Base - Descuento)
           const discountAmount = basePriceFS * (discountPercent / 100);
           const discountedPrice = basePriceFS - discountAmount;
           
-          // 5. Restar cuota adicional del cliente = Valor PRELIMINAR a financiar
-          const preliminaryFinancedAmount = discountedPrice - clientAdditional;
+          // 4. NUEVA LÓGICA: Calcular CI_nueva para que CI_nueva + Cuota_FS = Cuota Inicial Total
+          // Fórmula: CI_nueva = (Cuota Inicial Total - Nueva Base FS * % C.I.) / (1 - % C.I.)
+          const ciPercent = clientConfig.ci / 100; // Usar C.I., no FGA
+          const cuotaInicialCalculada = (creditoFSTotalInitial - discountedPrice * ciPercent) / (1 - ciPercent);
           
-          // 6. Calcular Fondo (Cuota Fondo) según tipo de cliente
-          const fondoCuota = preliminaryFinancedAmount * (clientConfig.ci / 100);
-          setCreditoFSFondoCuota(fondoCuota);
+          // Redondear la cuota inicial calculada
+          const cuotaInicialCalculadaRedondeada = roundToNearestFiveHundred(cuotaInicialCalculada);
           
-          // 7. Cuota Inicial Total = Cuota que el cliente está dispuesto a pagar + Cuota Fondo
-          const totalInitialPayment = clientAdditional + fondoCuota;
-          setCreditoFSTotalInitial(totalInitialPayment);
+          // 5. Calcular Valor a Financiar basado en la nueva CI calculada
+          const financedAmountCalc = discountedPrice - cuotaInicialCalculadaRedondeada;
+          const financedAmount = roundToNearestFiveHundred(financedAmountCalc);
           
-          // 8. Valor FINAL a financiar
-          const financedAmount = discountedPrice - totalInitialPayment;
+          // 6. Calcular Cuota FS basado en el Valor a Financiar usando C.I., no FGA
+          const cuotaFS = financedAmount * ciPercent;
+          const cuotaFSRedondeada = roundToNearestFiveHundred(cuotaFS);
+          
+          // 7. Guardar valores para mostrar
+          setCreditoFSFondoCuota(cuotaFSRedondeada); // Esta es la Cuota FS
           
           // Usar tasa mensual para corto plazo
           const interestRate = monthlyRate / 100;
           const tecAdmPerMonth = (discountedPrice * (tecAdm / 100)) / installments;
-          const fgaPerMonth = discountedPrice * (clientConfig.fga / 100);
+          // FGA se calcula sobre el Valor a Financiar, no sobre el Precio Base
+          const fgaPerMonth = financedAmount * (clientConfig.fga / 100);
           
           // Calcular cuota base usando sistema francés
           const r = interestRate;
@@ -550,7 +583,7 @@ const Cotizador = () => {
           basePrice = discountedPrice;
           totalPrice = discountedPrice;
           remainingBalance = financedAmount;
-          setInitialPayment(totalInitialPayment);
+          setInitialPayment(cuotaInicialCalculadaRedondeada); // Guardar la CI ajustada
           
         } else if (creditoFSTermType === 'largo') {
           // Lógica para largo plazo
@@ -957,15 +990,15 @@ const Cotizador = () => {
 
                       {creditoFSTermType === 'corto' && (
                         <div className="space-y-2">
-                          <Label>Cuota Inicial</Label>
+                          <Label>Cuota Inicial Total</Label>
                           <Input
                             type="number"
                             step="1000"
                             min="0"
-                            value={creditoFSClientWillingToPay || ''}
-                            onChange={(e) => setCreditoFSClientWillingToPay(parseFloat(e.target.value) || 0)}
+                            value={creditoFSTotalInitial || ''}
+                            onChange={(e) => setCreditoFSTotalInitial(parseFloat(e.target.value) || 0)}
                             onFocus={(e) => e.target.select()}
-                            placeholder="Ingrese la cuota inicial"
+                            placeholder="Ingrese la cuota inicial total"
                           />
                         </div>
                       )}
@@ -1075,51 +1108,47 @@ const Cotizador = () => {
                   </Button>
                   
                   {/* Información adicional - Solo para Crédito FS */}
-                  {saleType === "creditofs" && quote && creditoFSClientWillingToPay > 0 && (
+                  {saleType === "creditofs" && quote && creditoFSTotalInitial > 0 && (
                     <div className="mt-4 space-y-3">
                       {/* Porcentaje de la cuota inicial respecto al precio base */}
                       <div className="text-sm text-muted-foreground text-center">
-                        Cuota Inicial: {((creditoFSClientWillingToPay / (productPrices[0]?.credit_price || 1)) * 100).toFixed(1)}% del Precio Base
+                        Cuota Inicial Total: {((creditoFSTotalInitial / (productPrices[0]?.credit_price || 1)) * 100).toFixed(1)}% del Precio Base
                       </div>
                       
                       {/* Cuadro de resumen */}
                       <div className="p-3 bg-accent/10 rounded-lg border border-primary/20">
                         <div className="grid grid-cols-2 gap-3">
-                          {/* Cuota Inicial */}
+                          {/* Cuota Inicial (Ajustada) */}
                           <div className="space-y-1">
                             <div className="text-sm font-medium">
-                              Cuota Inicial: <span className="text-xs text-muted-foreground">
-                                ({((creditoFSClientWillingToPay / (productPrices[0]?.credit_price || 1)) * 100).toFixed(1)}%)
-                              </span>
+                              Cuota Inicial <span className="text-xs text-muted-foreground">(Ajustada)</span>
                             </div>
                             <div className="text-base font-semibold">
-                              ${creditoFSClientWillingToPay.toLocaleString()}
+                              ${quote.initialPayment.toLocaleString()}
                             </div>
                           </div>
                           
                           {/* Cuota FS */}
                           <div className="space-y-1">
-                            <div className="text-sm font-medium">Cuota FS</div>
+                            <div className="text-sm font-medium">
+                              Cuota FS <span className="text-xs text-muted-foreground">
+                                (Tipo {creditoFSClientType}: {
+                                  creditoFSClientType === 'AAA' || creditoFSClientType === 'AA' ? '0%' :
+                                  creditoFSClientType === 'A' || creditoFSClientType === 'BBB' ? '5%' :
+                                  '10%'
+                                })
+                              </span>
+                            </div>
                             <div className="text-base font-semibold text-accent">
                               ${creditoFSFondoCuota.toLocaleString()}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Tipo {creditoFSClientType}: {
-                                creditoFSClientType === 'AAA' ? '5%' :
-                                creditoFSClientType === 'AA' ? '6%' :
-                                creditoFSClientType === 'A' ? '7%' :
-                                creditoFSClientType === 'BBB' ? '8%' :
-                                creditoFSClientType === 'BB' ? '9%' :
-                                creditoFSClientType === 'B' ? '10%' : ''
-                              }
                             </div>
                           </div>
                         </div>
                         
-                        {/* Cuota Inicial Final */}
+                        {/* Cuota Inicial Total */}
                         <div className="mt-3 pt-3 border-t border-border">
                           <div className="flex justify-between items-center">
-                            <span className="text-sm font-semibold">Cuota Inicial Final:</span>
+                            <span className="text-sm font-semibold">Cuota Inicial Total:</span>
                             <span className="text-lg font-bold text-primary">
                               ${creditoFSTotalInitial.toLocaleString()}
                             </span>
