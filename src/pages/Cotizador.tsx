@@ -563,21 +563,17 @@ const Cotizador = () => {
           const discountAmount = basePriceFS * (discountPercent / 100);
           const discountedPrice = basePriceFS - discountAmount;
           
-          // 4. NUEVA LÓGICA: Calcular CI_nueva para que CI_nueva + Cuota_FS = Cuota Inicial Total
-          // Fórmula: CI_nueva = (Cuota Inicial Total - Nueva Base FS * % C.I.) / (1 - % C.I.)
+          // 4. Calcular Cuota FS sobre Nueva Base FS
           const ciPercent = clientConfig.ci / 100; // Usar C.I., no FGA
-          const cuotaInicialCalculada = (creditoFSTotalInitial - discountedPrice * ciPercent) / (1 - ciPercent);
-          
-          // Redondear la cuota inicial calculada
-          const cuotaInicialCalculadaRedondeada = roundToNearestFiveHundred(cuotaInicialCalculada);
-          
-          // 5. Calcular Valor a Financiar basado en la nueva CI calculada
-          const financedAmountCalc = discountedPrice - cuotaInicialCalculadaRedondeada;
-          const financedAmount = roundToNearestFiveHundred(financedAmountCalc);
-          
-          // 6. Calcular Cuota FS basado en el Valor a Financiar usando C.I., no FGA
-          const cuotaFS = financedAmount * ciPercent;
+          const cuotaFS = discountedPrice * ciPercent;
           const cuotaFSRedondeada = roundToNearestFiveHundred(cuotaFS);
+          
+          // 5. Cuota Inicial = Cuota Inicial Total - Cuota FS
+          // Esto garantiza que Cuota Inicial + Cuota FS = Cuota Inicial Total
+          const cuotaInicialCalculada = creditoFSTotalInitial - cuotaFSRedondeada;
+          
+          // 6. Calcular Valor a Financiar = Nueva Base FS - Cuota Inicial
+          const financedAmount = discountedPrice - cuotaInicialCalculada;
           
           // 7. Guardar valores para mostrar
           setCreditoFSFondoCuota(cuotaFSRedondeada); // Esta es la Cuota FS
@@ -636,7 +632,7 @@ const Cotizador = () => {
           // Guardar tabla y valores para incluir en quote
           creditoFSData = {
             amortizationTable: amortTable,
-            cuotaInicialAjustada: cuotaInicialCalculadaRedondeada,
+            cuotaInicialAjustada: cuotaInicialCalculada,
             discountPercent,
             discountAmount,
             cuotaFS: cuotaFSRedondeada
