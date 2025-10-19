@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { LogOut, CreditCard, FileText, HandshakeIcon, Settings, ChevronDown, ChevronUp, X } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import ProductSelector from "@/components/cotizador/ProductSelector";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,6 +41,9 @@ const Cotizador = () => {
   const [creditoFSAmortizationTable, setCreditoFSAmortizationTable] = useState<any[]>([]);
   const [creditoFSDiscountPercent, setCreditoFSDiscountPercent] = useState(0);
   const [creditoFSDiscountAmount, setCreditoFSDiscountAmount] = useState(0);
+  const [creditoFSLargoInicialMayor, setCreditoFSLargoInicialMayor] = useState(false);
+  const [creditoFSLargoCustomInitial, setCreditoFSLargoCustomInitial] = useState(0);
+  const [creditoFSLargoCuotaFS, setCreditoFSLargoCuotaFS] = useState(0);
   
   // Resetear valores cuando cambia el tipo de venta
   const handleSaleTypeChange = (newType: "contado" | "credicontado" | "credito" | "convenio" | "creditofs") => {
@@ -66,6 +70,9 @@ const Cotizador = () => {
     setCreditoFSAmortizationTable([]);
     setCreditoFSDiscountPercent(0);
     setCreditoFSDiscountAmount(0);
+    setCreditoFSLargoInicialMayor(false);
+    setCreditoFSLargoCustomInitial(0);
+    setCreditoFSLargoCuotaFS(0);
     
     if (newType === "contado") {
       setInstallments(1);
@@ -637,11 +644,22 @@ const Cotizador = () => {
           
         } else if (creditoFSTermType === 'largo') {
           // Lógica para largo plazo
-          const initialPaymentCalc = basePriceFS * (clientConfig.ci / 100);
+          const cuotaFSCalc = basePriceFS * (clientConfig.ci / 100);
+          setCreditoFSLargoCuotaFS(cuotaFSCalc);
+          
+          let initialPaymentCalc = cuotaFSCalc;
+          let precioBaseAjustado = basePriceFS;
+          
+          // Si está activado "Cuota Inicial Mayor"
+          if (creditoFSLargoInicialMayor && creditoFSLargoCustomInitial > cuotaFSCalc) {
+            initialPaymentCalc = creditoFSLargoCustomInitial;
+            precioBaseAjustado = basePriceFS - (creditoFSLargoCustomInitial - cuotaFSCalc);
+          }
+          
           setInitialPayment(initialPaymentCalc);
           
-          // Valor a Financiar = Precio Base - Cuota Inicial
-          const valorAFinanciar = basePriceFS - initialPaymentCalc;
+          // Valor a Financiar = Precio Base Ajustado - Cuota Inicial
+          const valorAFinanciar = precioBaseAjustado - initialPaymentCalc;
           
           const interestRate = creditoFSRateType === 'mensual' ? monthlyRate / 100 : retanqueoRate / 100;
           const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / installments;
@@ -691,7 +709,10 @@ const Cotizador = () => {
           
           // Guardar tabla para incluir en quote
           creditoFSDataLargo = {
-            amortizationTable: amortTable
+            amortizationTable: amortTable,
+            cuotaFS: cuotaFSCalc,
+            precioBaseAjustado: precioBaseAjustado,
+            inicialMayor: creditoFSLargoInicialMayor
           };
         }
         break;
@@ -1221,6 +1242,54 @@ const Cotizador = () => {
                     {saleType === "creditofs" ? "Calcular Amortización" : "Calcular Cotización"}
                   </Button>
                   
+                  {/* Radio Button Cuota Inicial Mayor - Solo para Largo Plazo después de calcular */}
+                  {saleType === "creditofs" && creditoFSTermType === 'largo' && quote && (
+                    <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="radio"
+                          id="inicial-mayor-largo"
+                          checked={creditoFSLargoInicialMayor}
+                          onChange={(e) => {
+                            setCreditoFSLargoInicialMayor(e.target.checked);
+                            if (!e.target.checked) {
+                              setCreditoFSLargoCustomInitial(0);
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <Label htmlFor="inicial-mayor-largo" className="cursor-pointer font-medium">
+                          Cuota Inicial Mayor
+                        </Label>
+                      </div>
+                      
+                      {creditoFSLargoInicialMayor && (
+                        <div className="mt-3 space-y-2">
+                          <Label>Valor Cuota Inicial</Label>
+                          <Input
+                            type="number"
+                            step="1000"
+                            min={creditoFSLargoCuotaFS}
+                            value={creditoFSLargoCustomInitial || ''}
+                            onChange={(e) => setCreditoFSLargoCustomInitial(parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
+                            placeholder={`Mínimo: $${creditoFSLargoCuotaFS.toLocaleString()}`}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Debe ser mayor a la Cuota FS: ${creditoFSLargoCuotaFS.toLocaleString()}
+                          </p>
+                          <Button 
+                            size="sm" 
+                            onClick={calculateQuote}
+                            className="w-full mt-2"
+                          >
+                            Recalcular con Cuota Inicial Mayor
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   {/* Información adicional - Solo para Crédito FS */}
                   {saleType === "creditofs" && quote && creditoFSTotalInitial > 0 && (
                     <div className="mt-4 space-y-3">
@@ -1708,18 +1777,35 @@ const Cotizador = () => {
               
               {creditoFSTermType === 'largo' && (
                 <>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Precio Base:</span>
-                    <span className="font-bold">${quote.totalPrice.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Cuota Inicial:</span>
-                    <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Tasa:</span>
-                    <span className="font-bold">{creditoFSRateType === 'mensual' ? 'Mensual' : 'Retanqueo'}</span>
-                  </div>
+                  {creditoFSLargoInicialMayor && creditoFSLargoCustomInitial > creditoFSLargoCuotaFS ? (
+                    <>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Precio Base:</span>
+                        <span className="font-bold">${quote.totalPrice.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Cuota Inicial:</span>
+                        <span className="font-bold">${(creditoFSLargoCustomInitial - creditoFSLargoCuotaFS).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Base FS:</span>
+                        <span className="font-bold text-primary">${(quote.totalPrice - (creditoFSLargoCustomInitial - creditoFSLargoCuotaFS)).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Cuota FS:</span>
+                        <span className="font-bold">${creditoFSLargoCuotaFS.toLocaleString()}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {creditoFSLargoCuotaFS > 0 && (
+                        <div className="flex justify-between py-2 border-b">
+                          <span className="font-medium">Cuota FS:</span>
+                          <span className="font-bold">${creditoFSLargoCuotaFS.toLocaleString()}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </>
               )}
               
