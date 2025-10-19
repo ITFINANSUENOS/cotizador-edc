@@ -737,40 +737,42 @@ const Cotizador = () => {
               nuevaBaseFS = basePriceFS - cuotaInicial;
             } else {
               // Si hay C.I%, resolver algebraicamente:
-              // Cuota Inicial + Cuota FS = Cuota Inicial Total
-              // Nueva Base FS = Base FS - Cuota Inicial
-              // Cuota FS = Nueva Base FS × C.I%
+              // Ecuaciones:
+              // 1. Cuota Inicial + Cuota FS = Cuota Inicial Total
+              // 2. Nueva Base FS = Base FS - Cuota Inicial
+              // 3. Cuota FS = Nueva Base FS × C.I%
               // 
-              // Sustituyendo:
+              // Sustituyendo (2) en (3):
+              // Cuota FS = (Base FS - Cuota Inicial) × C.I%
+              // 
+              // Sustituyendo en (1):
               // Cuota Inicial + (Base FS - Cuota Inicial) × C.I% = Cuota Inicial Total
-              // Expandiendo:
               // Cuota Inicial + Base FS × C.I% - Cuota Inicial × C.I% = Cuota Inicial Total
               // Cuota Inicial × (1 - C.I%) = Cuota Inicial Total - Base FS × C.I%
               // Cuota Inicial = (Cuota Inicial Total - Base FS × C.I%) / (1 - C.I%)
               
               const rawCuotaInicial = (creditoFSTotalInitial - basePriceFS * ciPercent) / (1 - ciPercent);
               
-              // Redondear Cuota Inicial hacia arriba en centenas
-              cuotaInicial = Math.ceil(rawCuotaInicial / 100) * 100;
+              // Redondear Cuota Inicial hacia arriba a la decena más cercana
+              cuotaInicial = Math.ceil(rawCuotaInicial / 10) * 10;
               
-              // Calcular Nueva Base FS y Cuota FS
+              // Calcular Nueva Base FS
               nuevaBaseFS = basePriceFS - cuotaInicial;
-              cuotaFS = nuevaBaseFS * ciPercent;
               
               // Ajustar Cuota FS para que sume exactamente la Cuota Inicial Total
-              const diff = creditoFSTotalInitial - (cuotaInicial + cuotaFS);
-              if (Math.abs(diff) > 0.01) {
-                cuotaFS += diff;
-              }
+              // (en lugar de calcularla como porcentaje, que puede dar diferencias por redondeo)
+              cuotaFS = creditoFSTotalInitial - cuotaInicial;
               
-              console.log('Cálculo Cuota Inicial Mayor:', {
+              console.log('Cálculo Cuota Inicial Mayor - Detalle:', {
                 basePriceFS,
                 creditoFSTotalInitial,
-                ciPercent,
+                ciPercent: ciPercent * 100 + '%',
+                rawCuotaInicial,
                 cuotaInicial,
                 nuevaBaseFS,
                 cuotaFS,
-                suma: cuotaInicial + cuotaFS
+                verificacionSuma: cuotaInicial + cuotaFS,
+                verificacionPorcentaje: (cuotaFS / nuevaBaseFS * 100).toFixed(2) + '%'
               });
             }
             
