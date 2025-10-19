@@ -730,7 +730,7 @@ const Cotizador = () => {
             let cuotaFS = 0;
             let nuevaBaseFS = 0;
             
-            console.log('🔍 DEBUG - Valores iniciales:', {
+            console.log('🔍 DEBUG Cotizador - Valores iniciales:', {
               basePriceFS,
               creditoFSTotalInitial,
               'clientConfig.ci': clientConfig.ci,
@@ -758,8 +758,8 @@ const Cotizador = () => {
               // Calcular Cuota FS para que sume exactamente la Cuota Inicial Total
               cuotaFS = creditoFSTotalInitial - cuotaInicial;
               
-              console.log('✅ RESULTADO - Cálculo Cuota Inicial Mayor:', {
-                'Base FS': basePriceFS.toLocaleString('es-CO'),
+              console.log('✅ RESULTADO Cotizador - Cálculo Cuota Inicial Mayor:', {
+                'Base FS (Original)': basePriceFS.toLocaleString('es-CO'),
                 'Cuota Inicial Total': creditoFSTotalInitial.toLocaleString('es-CO'),
                 'C.I%': (ciPercent * 100) + '%',
                 '---': '---',
