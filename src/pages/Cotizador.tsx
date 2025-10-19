@@ -44,6 +44,7 @@ const Cotizador = () => {
   const [creditoFSLargoInicialMayor, setCreditoFSLargoInicialMayor] = useState(false);
   const [creditoFSLargoCustomInitial, setCreditoFSLargoCustomInitial] = useState(0);
   const [creditoFSLargoCuotaFS, setCreditoFSLargoCuotaFS] = useState(0);
+  const [shouldRecalculate, setShouldRecalculate] = useState(false);
   
   // Resetear valores cuando cambia el tipo de venta
   const handleSaleTypeChange = (newType: "contado" | "credicontado" | "credito" | "convenio" | "creditofs") => {
@@ -178,6 +179,14 @@ const Cotizador = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // useEffect para recalcular cuando cambia creditoFSTotalInitial
+  useEffect(() => {
+    if (shouldRecalculate && selectedProduct && productPrices) {
+      calculateQuote();
+      setShouldRecalculate(false);
+    }
+  }, [creditoFSTotalInitial, shouldRecalculate]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -1412,12 +1421,8 @@ const Cotizador = () => {
                           <Button 
                             size="sm" 
                             onClick={() => {
-                              // Actualizar el estado
                               setCreditoFSTotalInitial(creditoFSLargoCustomInitial);
-                              // Usar requestAnimationFrame para asegurar que el estado se actualiza antes de recalcular
-                              requestAnimationFrame(() => {
-                                calculateQuote();
-                              });
+                              setShouldRecalculate(true);
                             }}
                             className="w-full mt-2"
                           >
