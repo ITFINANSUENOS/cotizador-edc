@@ -658,8 +658,9 @@ const Cotizador = () => {
           
           setInitialPayment(initialPaymentCalc);
           
-          // Valor a Financiar = Precio Base Ajustado - Cuota Inicial
-          const valorAFinanciar = precioBaseAjustado - initialPaymentCalc;
+          // Base FS = Precio Base (Ajustado si hay Inicial Mayor) - Cuota FS
+          // Este es el valor sobre el cual se hace la amortización
+          const valorAFinanciar = precioBaseAjustado - cuotaFSCalc;
           
           const interestRate = creditoFSRateType === 'mensual' ? monthlyRate / 100 : retanqueoRate / 100;
           const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / installments;
