@@ -646,24 +646,40 @@ const Cotizador = () => {
           };
           
         } else if (creditoFSTermType === 'largo') {
-          // Lógica para largo plazo
-          const cuotaFSCalc = basePriceFS * (clientConfig.ci / 100);
-          setCreditoFSLargoCuotaFS(cuotaFSCalc);
+          // Lógica para largo plazo - NUEVA IMPLEMENTACIÓN
+          // Fórmulas:
+          // 1. Precio Base - Cuota Inicial = Base FS
+          // 2. Cuota FS = Base FS × C.I.% (5% o 10%)
+          // 3. Cuota Inicial + Cuota FS = Valor Cuota Inicial (creditoFSTotalInitial)
           
-          let initialPaymentCalc = cuotaFSCalc;
-          let precioBaseAjustado = basePriceFS;
+          // Resolver algebraicamente:
+          // Sea CI = Cuota Inicial, CFS = Cuota FS, VCI = Valor Cuota Inicial, PB = Precio Base, p = C.I.%
+          // De (1): Base FS = PB - CI
+          // De (2): CFS = (PB - CI) × p
+          // De (3): CI + CFS = VCI
+          // Sustituyendo (2) en (3): CI + (PB - CI) × p = VCI
+          // Resolviendo: CI + PB×p - CI×p = VCI
+          //              CI(1 - p) = VCI - PB×p
+          //              CI = (VCI - PB×p) / (1 - p)
           
-          // Si está activado "Cuota Inicial Mayor"
-          if (creditoFSLargoInicialMayor && creditoFSLargoCustomInitial > cuotaFSCalc) {
-            initialPaymentCalc = creditoFSLargoCustomInitial;
-            precioBaseAjustado = basePriceFS - (creditoFSLargoCustomInitial - cuotaFSCalc);
-          }
+          const ciPercent = clientConfig.ci / 100;
+          const cuotaInicialCalculada = (creditoFSTotalInitial - basePriceFS * ciPercent) / (1 - ciPercent);
           
-          setInitialPayment(initialPaymentCalc);
+          // Redondear Cuota Inicial hacia arriba en decenas
+          const cuotaInicialRedondeada = roundUpToTens(cuotaInicialCalculada);
           
-          // Base FS = Precio Base (Ajustado si hay Inicial Mayor) - Cuota FS
-          // Este es el valor sobre el cual se hace la amortización
-          const valorAFinanciar = precioBaseAjustado - cuotaFSCalc;
+          // Calcular Cuota FS = Valor Cuota Inicial - Cuota Inicial
+          // Esto GARANTIZA que Cuota Inicial + Cuota FS = Valor Cuota Inicial
+          const cuotaFSCalculada = creditoFSTotalInitial - cuotaInicialRedondeada;
+          
+          setCreditoFSLargoCuotaFS(cuotaFSCalculada);
+          setInitialPayment(cuotaInicialRedondeada);
+          
+          // Base FS = Precio Base - Cuota Inicial
+          const baseFS = basePriceFS - cuotaInicialRedondeada;
+          
+          // Valor a Financiar = Base FS (sin restar Cuota FS)
+          const valorAFinanciar = baseFS;
           
           const interestRate = creditoFSRateType === 'mensual' ? monthlyRate / 100 : retanqueoRate / 100;
           const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / installments;
@@ -714,9 +730,9 @@ const Cotizador = () => {
           // Guardar tabla para incluir en quote
           creditoFSDataLargo = {
             amortizationTable: amortTable,
-            cuotaFS: cuotaFSCalc,
-            precioBaseAjustado: precioBaseAjustado,
-            inicialMayor: creditoFSLargoInicialMayor
+            cuotaFS: cuotaFSCalculada,
+            precioBaseAjustado: basePriceFS,
+            inicialMayor: false
           };
         }
         break;
