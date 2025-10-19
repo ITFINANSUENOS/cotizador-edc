@@ -1914,7 +1914,7 @@ const Cotizador = () => {
                   {quote.creditoFSInicialMayor ? (
                     <>
                       <div className="flex justify-between py-2 border-b">
-                        <span className="font-medium">Base FS:</span>
+                        <span className="font-medium">Base FS (Original):</span>
                         <span className="font-bold text-primary">${(quote.creditoFSBaseFSOriginal || quote.creditoFSPrecioBase || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b">
@@ -1932,6 +1932,10 @@ const Cotizador = () => {
                             ? `$${Math.round(quote.creditoFSCuotaFS).toLocaleString()}` 
                             : '-'}
                         </span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Cuota Inicial Total:</span>
+                        <span className="font-bold text-blue-600">${creditoFSTotalInitial.toLocaleString()}</span>
                       </div>
                     </>
                   ) : (
