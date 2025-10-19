@@ -720,29 +720,52 @@ const Cotizador = () => {
             
           } else {
             // CASO 2: CON CUOTA INICIAL MAYOR
-            // Fórmulas:
-            // 1. "Precio Base" - "Cuota Inicial" = "Base FS"
-            // 2. "Cuota FS" = "Base FS" × C.I.% 
-            // 3. "Cuota Inicial" + "Cuota FS" = "Valor Cuota Inicial" (creditoFSTotalInitial)
+            // El usuario ingresa "Cuota Inicial Total" que se divide en:
+            // - "Cuota Inicial" (reduce la Base FS)
+            // - "Cuota FS" (es el C.I% del valor a financiar)
             
-            // Resolver algebraicamente para Cuota Inicial:
             const ciPercent = clientConfig.ci / 100;
-            const cuotaInicialCalculada = (creditoFSTotalInitial - basePriceFS * ciPercent) / (1 - ciPercent);
             
-            // Redondear Cuota Inicial hacia arriba en decenas
-            const cuotaInicialRedondeada = roundUpToTens(cuotaInicialCalculada);
+            let cuotaInicial = 0;
+            let cuotaFS = 0;
+            let nuevaBaseFS = 0;
             
-            // Calcular Base FS = Precio Base - Cuota Inicial
-            const baseFS = basePriceFS - cuotaInicialRedondeada;
+            if (ciPercent === 0) {
+              // Si no hay C.I%, toda la Cuota Inicial Total va a reducir la Base FS
+              cuotaInicial = creditoFSTotalInitial;
+              cuotaFS = 0;
+              nuevaBaseFS = basePriceFS - cuotaInicial;
+            } else {
+              // Si hay C.I%, resolver algebraicamente:
+              // Cuota Inicial + Cuota FS = Cuota Inicial Total
+              // Cuota FS = (Base FS - Cuota Inicial) × C.I%
+              // 
+              // Sustituyendo:
+              // Cuota Inicial + (Base FS - Cuota Inicial) × C.I% = Cuota Inicial Total
+              // Cuota Inicial × (1 - C.I%) = Cuota Inicial Total - Base FS × C.I%
+              // Cuota Inicial = (Cuota Inicial Total - Base FS × C.I%) / (1 - C.I%)
+              
+              cuotaInicial = (creditoFSTotalInitial - basePriceFS * ciPercent) / (1 - ciPercent);
+              
+              // Redondear Cuota Inicial hacia arriba en decenas
+              cuotaInicial = roundUpToTens(cuotaInicial);
+              
+              // Calcular Nueva Base FS y Cuota FS
+              nuevaBaseFS = basePriceFS - cuotaInicial;
+              cuotaFS = nuevaBaseFS * ciPercent;
+              
+              // Ajustar para que sume exactamente la Cuota Inicial Total
+              const cuotaInicialTotal = cuotaInicial + cuotaFS;
+              if (Math.abs(cuotaInicialTotal - creditoFSTotalInitial) > 0.01) {
+                cuotaFS = creditoFSTotalInitial - cuotaInicial;
+              }
+            }
             
-            // Calcular Cuota FS = Base FS × C.I.%
-            const cuotaFSCalculada = baseFS * ciPercent;
+            setCreditoFSLargoCuotaFS(cuotaFS);
+            setInitialPayment(cuotaInicial);
             
-            setCreditoFSLargoCuotaFS(cuotaFSCalculada);
-            setInitialPayment(cuotaInicialRedondeada);
-            
-            // Valor a Financiar para la amortización = Base FS
-            const valorAFinanciar = baseFS;
+            // Valor a Financiar para la amortización = Nueva Base FS
+            const valorAFinanciar = nuevaBaseFS;
             
             const interestRate = creditoFSRateType === 'mensual' ? monthlyRate / 100 : retanqueoRate / 100;
             const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / installments;
@@ -790,9 +813,11 @@ const Cotizador = () => {
             
             creditoFSDataLargo = {
               amortizationTable: amortTable,
-              cuotaFS: cuotaFSCalculada,
-              cuotaInicial: cuotaInicialRedondeada,
-              baseFS: baseFS,
+              cuotaFS: cuotaFS,
+              cuotaInicial: cuotaInicial,
+              nuevaBaseFS: nuevaBaseFS,
+              cuotaInicialTotal: creditoFSTotalInitial,
+              baseFS: nuevaBaseFS,
               precioBase: basePriceFS,
               inicialMayor: true
             };
@@ -840,7 +865,10 @@ const Cotizador = () => {
         quoteData.creditoFSCuotaFS = creditoFSDataLargo.cuotaFS;
         quoteData.creditoFSCuotaInicial = creditoFSDataLargo.cuotaInicial;
         quoteData.creditoFSBaseFS = creditoFSDataLargo.baseFS;
+        quoteData.creditoFSNuevaBaseFS = creditoFSDataLargo.nuevaBaseFS;
+        quoteData.creditoFSCuotaInicialTotal = creditoFSDataLargo.cuotaInicialTotal;
         quoteData.creditoFSPrecioBase = creditoFSDataLargo.precioBase;
+        quoteData.creditoFSInicialMayor = creditoFSDataLargo.inicialMayor;
         
         // Actualizar estado
         setCreditoFSAmortizationTable(creditoFSDataLargo.amortizationTable);
@@ -1868,17 +1896,15 @@ const Cotizador = () => {
               {creditoFSTermType === 'largo' && (
                 <>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Base FS:</span>
-                    <span className="font-bold text-primary">${(quote.creditoFSBaseFS || quote.remainingBalance).toLocaleString()}</span>
+                    <span className="font-medium">Nueva Base FS:</span>
+                    <span className="font-bold text-primary">${(quote.creditoFSNuevaBaseFS || quote.remainingBalance).toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Cuota FS:</span>
-                    <span className="font-bold">
-                      {quote.creditoFSCuotaFS && quote.creditoFSCuotaFS > 0 
-                        ? `$${Math.round(quote.creditoFSCuotaFS).toLocaleString()}` 
-                        : '-'}
-                    </span>
-                  </div>
+                  {quote.creditoFSInicialMayor && (
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="font-medium">Cuota I. Total:</span>
+                      <span className="font-bold">${(quote.creditoFSCuotaInicialTotal || 0).toLocaleString()}</span>
+                    </div>
+                  )}
                 </>
               )}
               
