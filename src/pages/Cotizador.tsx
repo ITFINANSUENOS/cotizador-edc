@@ -505,6 +505,11 @@ const Cotizador = () => {
           return Math.ceil(value / 500) * 500;
         };
         
+        // Función para redondear hacia arriba en decenas
+        const roundUpToTens = (value: number): number => {
+          return Math.ceil(value / 10) * 10;
+        };
+        
         if (creditoFSTermType === 'corto') {
           // Lógica para corto plazo - NUEVA IMPLEMENTACIÓN
           if (creditoFSTotalInitial <= 0) {
@@ -563,23 +568,22 @@ const Cotizador = () => {
           const discountAmount = basePriceFS * (discountPercent / 100);
           const discountedPrice = basePriceFS - discountAmount;
           
-          // 4. Resolver algebraicamente para que:
-          // - Cuota Inicial + Cuota FS = Cuota Inicial Total
-          // - Cuota FS = Valor a Financiar × C.I.%
-          // - Valor a Financiar = Nueva Base FS - Cuota Inicial
-          // Fórmula derivada: CI = (CIT - NBF×p) / (1 - p)
-          const ciPercent = clientConfig.ci / 100; // Usar C.I., no FGA
+          // 4. Calcular algebraicamente Cuota Inicial
+          const ciPercent = clientConfig.ci / 100;
           const cuotaInicialCalculada = (creditoFSTotalInitial - discountedPrice * ciPercent) / (1 - ciPercent);
           
-          // 5. Calcular Valor a Financiar = Nueva Base FS - Cuota Inicial
-          const financedAmount = discountedPrice - cuotaInicialCalculada;
+          // 5. Redondear Cuota Inicial hacia arriba en decenas
+          const cuotaInicialRedondeada = roundUpToTens(cuotaInicialCalculada);
           
-          // 6. Calcular Cuota FS = Valor a Financiar × C.I.%
-          const cuotaFS = financedAmount * ciPercent;
-          const cuotaFSRedondeada = roundToNearestFiveHundred(cuotaFS);
+          // 6. Calcular Cuota FS = Cuota Inicial Total - Cuota Inicial
+          // Esto GARANTIZA que Cuota Inicial + Cuota FS = Cuota Inicial Total (exacto)
+          const cuotaFSCalculada = creditoFSTotalInitial - cuotaInicialRedondeada;
+          
+          // 7. Calcular Valor a Financiar = Nueva Base FS - Cuota Inicial
+          const financedAmount = discountedPrice - cuotaInicialRedondeada;
           
           // 7. Guardar valores para mostrar
-          setCreditoFSFondoCuota(cuotaFSRedondeada); // Esta es la Cuota FS
+          setCreditoFSFondoCuota(cuotaFSCalculada); // Esta es la Cuota FS
           setCreditoFSDiscountPercent(discountPercent);
           setCreditoFSDiscountAmount(discountAmount);
           
@@ -635,10 +639,10 @@ const Cotizador = () => {
           // Guardar tabla y valores para incluir en quote
           creditoFSData = {
             amortizationTable: amortTable,
-            cuotaInicialAjustada: cuotaInicialCalculada,
+            cuotaInicialAjustada: cuotaInicialRedondeada,
             discountPercent,
             discountAmount,
-            cuotaFS: cuotaFSRedondeada
+            cuotaFS: cuotaFSCalculada
           };
           
         } else if (creditoFSTermType === 'largo') {
