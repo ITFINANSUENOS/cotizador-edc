@@ -1798,6 +1798,10 @@ const Cotizador = () => {
                     </>
                   ) : (
                     <>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Base FS:</span>
+                        <span className="font-bold text-primary">${quote.totalPrice.toLocaleString()}</span>
+                      </div>
                       {creditoFSLargoCuotaFS > 0 && (
                         <div className="flex justify-between py-2 border-b">
                           <span className="font-medium">Cuota FS:</span>
