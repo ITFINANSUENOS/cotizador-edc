@@ -1895,15 +1895,32 @@ const Cotizador = () => {
               
               {creditoFSTermType === 'largo' && (
                 <>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Nueva Base FS:</span>
-                    <span className="font-bold text-primary">${(quote.creditoFSNuevaBaseFS || quote.remainingBalance).toLocaleString()}</span>
-                  </div>
-                  {quote.creditoFSInicialMayor && (
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="font-medium">Cuota I. Total:</span>
-                      <span className="font-bold">${(quote.creditoFSCuotaInicialTotal || 0).toLocaleString()}</span>
-                    </div>
+                  {quote.creditoFSInicialMayor ? (
+                    <>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Nueva Base FS:</span>
+                        <span className="font-bold text-primary">${(quote.creditoFSNuevaBaseFS || quote.remainingBalance).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Cuota I. Total:</span>
+                        <span className="font-bold">${(quote.creditoFSCuotaInicialTotal || 0).toLocaleString()}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Base FS:</span>
+                        <span className="font-bold text-primary">${(quote.creditoFSBaseFS || quote.remainingBalance).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Cuota FS:</span>
+                        <span className="font-bold">
+                          {quote.creditoFSCuotaFS && quote.creditoFSCuotaFS > 0 
+                            ? `$${Math.round(quote.creditoFSCuotaFS).toLocaleString()}` 
+                            : '-'}
+                        </span>
+                      </div>
+                    </>
                   )}
                 </>
               )}
