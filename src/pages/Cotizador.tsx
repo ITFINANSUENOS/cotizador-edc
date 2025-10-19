@@ -1433,45 +1433,6 @@ const Cotizador = () => {
                     </div>
                   )}
                   
-                  {/* Información adicional - Solo para Crédito FS */}
-                  {saleType === "creditofs" && quote && creditoFSTotalInitial > 0 && (
-                    <div className="mt-4 space-y-3">
-                      {/* Cuadro de resumen */}
-                      <div className="p-3 bg-accent/10 rounded-lg border border-primary/20">
-                        <div className="grid grid-cols-2 gap-3">
-                          {/* Cuota Inicial */}
-                          <div className="space-y-1">
-                            <div className="text-sm font-medium">
-                              Cuota Inicial
-                            </div>
-                            <div className="text-base font-semibold">
-                              ${quote.initialPayment.toLocaleString()}
-                            </div>
-                          </div>
-                          
-                          {/* Cuota FS */}
-                          <div className="space-y-1">
-                            <div className="text-sm font-medium">
-                              Cuota FS
-                            </div>
-                            <div className="text-base font-semibold text-accent">
-                              ${creditoFSFondoCuota.toLocaleString()}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Cuota Inicial Total */}
-                        <div className="mt-3 pt-3 border-t border-border">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-semibold">Cuota Inicial Total:</span>
-                            <span className="text-lg font-bold text-primary">
-                              ${creditoFSTotalInitial.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   
                   {/* Procesos adicionales - Solo para Crédito */}
                   {saleType === "credito" && quote && (
