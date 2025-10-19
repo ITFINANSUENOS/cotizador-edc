@@ -563,17 +563,20 @@ const Cotizador = () => {
           const discountAmount = basePriceFS * (discountPercent / 100);
           const discountedPrice = basePriceFS - discountAmount;
           
-          // 4. Calcular Cuota FS sobre Nueva Base FS
+          // 4. Resolver algebraicamente para que:
+          // - Cuota Inicial + Cuota FS = Cuota Inicial Total
+          // - Cuota FS = Valor a Financiar × C.I.%
+          // - Valor a Financiar = Nueva Base FS - Cuota Inicial
+          // Fórmula derivada: CI = (CIT - NBF×p) / (1 - p)
           const ciPercent = clientConfig.ci / 100; // Usar C.I., no FGA
-          const cuotaFS = discountedPrice * ciPercent;
-          const cuotaFSRedondeada = roundToNearestFiveHundred(cuotaFS);
+          const cuotaInicialCalculada = (creditoFSTotalInitial - discountedPrice * ciPercent) / (1 - ciPercent);
           
-          // 5. Cuota Inicial = Cuota Inicial Total - Cuota FS
-          // Esto garantiza que Cuota Inicial + Cuota FS = Cuota Inicial Total
-          const cuotaInicialCalculada = creditoFSTotalInitial - cuotaFSRedondeada;
-          
-          // 6. Calcular Valor a Financiar = Nueva Base FS - Cuota Inicial
+          // 5. Calcular Valor a Financiar = Nueva Base FS - Cuota Inicial
           const financedAmount = discountedPrice - cuotaInicialCalculada;
+          
+          // 6. Calcular Cuota FS = Valor a Financiar × C.I.%
+          const cuotaFS = financedAmount * ciPercent;
+          const cuotaFSRedondeada = roundToNearestFiveHundred(cuotaFS);
           
           // 7. Guardar valores para mostrar
           setCreditoFSFondoCuota(cuotaFSRedondeada); // Esta es la Cuota FS
