@@ -1923,19 +1923,15 @@ const Cotizador = () => {
                       </div>
                       <div className="flex justify-between py-2 border-b">
                         <span className="font-medium">Nueva Base FS:</span>
-                        <span className="font-bold text-primary">${(quote.creditoFSNuevaBaseFS || quote.remainingBalance).toLocaleString()}</span>
+                        <span className="font-bold text-primary">${(quote.creditoFSNuevaBaseFS || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b">
                         <span className="font-medium">Cuota FS:</span>
-                        <span className="font-bold">
-                          {quote.creditoFSCuotaFS && quote.creditoFSCuotaFS > 0 
-                            ? `$${Math.round(quote.creditoFSCuotaFS).toLocaleString()}` 
-                            : '-'}
-                        </span>
+                        <span className="font-bold">${Math.round(quote.creditoFSCuotaFS || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b">
                         <span className="font-medium">Cuota Inicial Total:</span>
-                        <span className="font-bold text-blue-600">${creditoFSTotalInitial.toLocaleString()}</span>
+                        <span className="font-bold text-blue-600">${(quote.creditoFSCuotaInicialTotal || creditoFSTotalInitial).toLocaleString()}</span>
                       </div>
                     </>
                   ) : (
@@ -1946,11 +1942,7 @@ const Cotizador = () => {
                       </div>
                       <div className="flex justify-between py-2 border-b">
                         <span className="font-medium">Cuota FS:</span>
-                        <span className="font-bold">
-                          {quote.creditoFSCuotaFS && quote.creditoFSCuotaFS > 0 
-                            ? `$${Math.round(quote.creditoFSCuotaFS).toLocaleString()}` 
-                            : '-'}
-                        </span>
+                        <span className="font-bold">${Math.round(quote.creditoFSCuotaFS || 0).toLocaleString()}</span>
                       </div>
                     </>
                   )}
