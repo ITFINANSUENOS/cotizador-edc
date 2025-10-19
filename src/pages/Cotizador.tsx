@@ -646,20 +646,22 @@ const Cotizador = () => {
           };
           
         } else if (creditoFSTermType === 'largo') {
-          // Lógica para largo plazo - NUEVA IMPLEMENTACIÓN
-          // Fórmulas:
-          // 1. Precio Base - Cuota Inicial = Base FS
-          // 2. Cuota FS = Base FS × C.I.% (5% o 10%)
-          // 3. Cuota Inicial + Cuota FS = Valor Cuota Inicial (creditoFSTotalInitial)
+          // Lógica para largo plazo - CORREGIDA
+          // Fórmulas correctas:
+          // 1. "Precio Base" - "Cuota Inicial" = "Base FS"
+          // 2. "Cuota FS" = "Base FS" × C.I.% 
+          // 3. "Cuota Inicial" + "Cuota FS" = "Valor Cuota Inicial" (creditoFSTotalInitial)
           
-          // Resolver algebraicamente:
+          // La amortización se hace sobre "Base FS" (NO sobre Base FS - Cuota FS)
+          // "Cuota FS" va al fondo de garantía, NO reduce el capital a financiar
+          
+          // Resolver algebraicamente para Cuota Inicial:
           // Sea CI = Cuota Inicial, CFS = Cuota FS, VCI = Valor Cuota Inicial, PB = Precio Base, p = C.I.%
           // De (1): Base FS = PB - CI
           // De (2): CFS = (PB - CI) × p
           // De (3): CI + CFS = VCI
           // Sustituyendo (2) en (3): CI + (PB - CI) × p = VCI
-          // Resolviendo: CI + PB×p - CI×p = VCI
-          //              CI(1 - p) = VCI - PB×p
+          // Resolviendo: CI(1 - p) = VCI - PB×p
           //              CI = (VCI - PB×p) / (1 - p)
           
           const ciPercent = clientConfig.ci / 100;
@@ -668,17 +670,20 @@ const Cotizador = () => {
           // Redondear Cuota Inicial hacia arriba en decenas
           const cuotaInicialRedondeada = roundUpToTens(cuotaInicialCalculada);
           
-          // Calcular Cuota FS = Valor Cuota Inicial - Cuota Inicial
-          // Esto GARANTIZA que Cuota Inicial + Cuota FS = Valor Cuota Inicial
-          const cuotaFSCalculada = creditoFSTotalInitial - cuotaInicialRedondeada;
+          // Calcular Base FS = Precio Base - Cuota Inicial
+          const baseFS = basePriceFS - cuotaInicialRedondeada;
+          
+          // Calcular Cuota FS = Base FS × C.I.%
+          const cuotaFSCalculada = baseFS * ciPercent;
+          
+          // Verificar que Cuota Inicial + Cuota FS esté cerca de Valor Cuota Inicial
+          // (puede haber pequeña diferencia por redondeo de Cuota Inicial)
           
           setCreditoFSLargoCuotaFS(cuotaFSCalculada);
           setInitialPayment(cuotaInicialRedondeada);
           
-          // Base FS = Precio Base - Cuota Inicial
-          const baseFS = basePriceFS - cuotaInicialRedondeada;
-          
-          // Valor a Financiar = Base FS (sin restar Cuota FS)
+          // Valor a Financiar para la amortización = Base FS
+          // La Cuota FS NO se resta del capital a financiar
           const valorAFinanciar = baseFS;
           
           const interestRate = creditoFSRateType === 'mensual' ? monthlyRate / 100 : retanqueoRate / 100;
