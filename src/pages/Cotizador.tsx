@@ -1236,10 +1236,15 @@ const Cotizador = () => {
                             ) : (
                               <>
                                 <SelectItem value="9">9 cuotas</SelectItem>
+                                <SelectItem value="10">10 cuotas</SelectItem>
                                 <SelectItem value="11">11 cuotas</SelectItem>
                                 <SelectItem value="12">12 cuotas</SelectItem>
+                                <SelectItem value="13">13 cuotas</SelectItem>
                                 <SelectItem value="14">14 cuotas</SelectItem>
+                                <SelectItem value="15">15 cuotas</SelectItem>
+                                <SelectItem value="16">16 cuotas</SelectItem>
                                 <SelectItem value="17">17 cuotas</SelectItem>
+                                <SelectItem value="18">18 cuotas</SelectItem>
                               </>
                             )}
                           </SelectContent>
