@@ -1352,7 +1352,7 @@ const Cotizador = () => {
                       
                       {creditoFSLargoInicialMayor && (
                         <div className="mt-3 space-y-2">
-                          <Label>Valor Cuota Inicial</Label>
+                          <Label>Valor Cuota Inicial Total</Label>
                           <Input
                             type="number"
                             step="1000"
@@ -1367,7 +1367,10 @@ const Cotizador = () => {
                           </p>
                           <Button 
                             size="sm" 
-                            onClick={calculateQuote}
+                            onClick={() => {
+                              setCreditoFSTotalInitial(creditoFSLargoCustomInitial);
+                              setTimeout(() => calculateQuote(), 50);
+                            }}
                             className="w-full mt-2"
                           >
                             Recalcular con Cuota Inicial Mayor
