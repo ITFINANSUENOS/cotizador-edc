@@ -646,101 +646,157 @@ const Cotizador = () => {
           };
           
         } else if (creditoFSTermType === 'largo') {
-          // Lógica para largo plazo - CORREGIDA
-          // Fórmulas correctas:
-          // 1. "Precio Base" - "Cuota Inicial" = "Base FS"
-          // 2. "Cuota FS" = "Base FS" × C.I.% 
-          // 3. "Cuota Inicial" + "Cuota FS" = "Valor Cuota Inicial" (creditoFSTotalInitial)
+          // Determinar si tiene cuota inicial mayor o no
+          const tieneCuotaInicialMayor = creditoFSLargoInicialMayor && creditoFSTotalInitial > 0;
           
-          // La amortización se hace sobre "Base FS" (NO sobre Base FS - Cuota FS)
-          // "Cuota FS" va al fondo de garantía, NO reduce el capital a financiar
-          
-          // Resolver algebraicamente para Cuota Inicial:
-          // Sea CI = Cuota Inicial, CFS = Cuota FS, VCI = Valor Cuota Inicial, PB = Precio Base, p = C.I.%
-          // De (1): Base FS = PB - CI
-          // De (2): CFS = (PB - CI) × p
-          // De (3): CI + CFS = VCI
-          // Sustituyendo (2) en (3): CI + (PB - CI) × p = VCI
-          // Resolviendo: CI(1 - p) = VCI - PB×p
-          //              CI = (VCI - PB×p) / (1 - p)
-          
-          const ciPercent = clientConfig.ci / 100;
-          const cuotaInicialCalculada = (creditoFSTotalInitial - basePriceFS * ciPercent) / (1 - ciPercent);
-          
-          // Redondear Cuota Inicial hacia arriba en decenas
-          const cuotaInicialRedondeada = roundUpToTens(cuotaInicialCalculada);
-          
-          // Calcular Base FS = Precio Base - Cuota Inicial
-          const baseFS = basePriceFS - cuotaInicialRedondeada;
-          
-          // Calcular Cuota FS = Base FS × C.I.%
-          const cuotaFSCalculada = baseFS * ciPercent;
-          
-          // Verificar que Cuota Inicial + Cuota FS esté cerca de Valor Cuota Inicial
-          // (puede haber pequeña diferencia por redondeo de Cuota Inicial)
-          
-          setCreditoFSLargoCuotaFS(cuotaFSCalculada);
-          setInitialPayment(cuotaInicialRedondeada);
-          
-          // Valor a Financiar para la amortización = Base FS
-          // La Cuota FS NO se resta del capital a financiar
-          const valorAFinanciar = baseFS;
-          
-          const interestRate = creditoFSRateType === 'mensual' ? monthlyRate / 100 : retanqueoRate / 100;
-          const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / installments;
-          const fgaPerMonth = valorAFinanciar * (clientConfig.fga / 100);
-          
-          // Calcular cuota base usando sistema francés
-          const r = interestRate;
-          const n = installments;
-          const fixedPaymentWithoutExtras = valorAFinanciar * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-          
-          const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
-          const seguro2Monthly = (valorAFinanciar * seguro2Formula) / 1000;
-          
-          // Generar tabla de amortización
-          let balance = valorAFinanciar;
-          const amortTable = [];
-          
-          for (let i = 1; i <= installments; i++) {
-            const interest = balance * interestRate;
-            const principal = fixedPaymentWithoutExtras - interest;
+          if (!tieneCuotaInicialMayor) {
+            // CASO 1: SIN CUOTA INICIAL MAYOR
+            // - NO tiene Cuota Inicial
+            // - La liquidación se hace sobre "Base FS" (que es el Precio Base)
+            // - Puede tener "Cuota FS" = Base FS × C.I.% (si C.I.% > 0)
             
-            const seguro1Row = fixedPaymentWithoutExtras * (seguro1 / 100);
-            const seguro2Row = (balance * seguro2Formula) / 1000;
+            const baseFS = basePriceFS; // Base FS = Precio Base
+            const ciPercent = clientConfig.ci / 100;
+            const cuotaFS = baseFS * ciPercent; // Cuota FS = Base FS × C.I.%
             
-            const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Row + seguro2Row;
+            setCreditoFSLargoCuotaFS(cuotaFS);
+            setInitialPayment(0); // No hay cuota inicial
             
-            amortTable.push({
-              month: i,
-              balance: balance,
-              principal: principal,
-              interest: interest,
-              tecAdm: tecAdmPerMonth,
-              fga: fgaPerMonth,
-              seguro1: seguro1Row,
-              seguro2: seguro2Row,
-              payment: totalPayment
-            });
+            // Valor a financiar para amortización = Base FS
+            const valorAFinanciar = baseFS;
             
-            balance -= principal;
+            const interestRate = creditoFSRateType === 'mensual' ? monthlyRate / 100 : retanqueoRate / 100;
+            const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / installments;
+            const fgaPerMonth = valorAFinanciar * (clientConfig.fga / 100);
+            
+            // Calcular cuota base usando sistema francés
+            const r = interestRate;
+            const n = installments;
+            const fixedPaymentWithoutExtras = valorAFinanciar * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+            
+            const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
+            const seguro2Monthly = (valorAFinanciar * seguro2Formula) / 1000;
+            
+            // Generar tabla de amortización
+            let balance = valorAFinanciar;
+            const amortTable = [];
+            
+            for (let i = 1; i <= installments; i++) {
+              const interest = balance * interestRate;
+              const principal = fixedPaymentWithoutExtras - interest;
+              
+              const seguro1Row = fixedPaymentWithoutExtras * (seguro1 / 100);
+              const seguro2Row = (balance * seguro2Formula) / 1000;
+              
+              const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Row + seguro2Row;
+              
+              amortTable.push({
+                month: i,
+                balance: balance,
+                principal: principal,
+                interest: interest,
+                tecAdm: tecAdmPerMonth,
+                fga: fgaPerMonth,
+                seguro1: seguro1Row,
+                seguro2: seguro2Row,
+                payment: totalPayment
+              });
+              
+              balance -= principal;
+            }
+            
+            monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
+            totalPrice = basePriceFS;
+            remainingBalance = valorAFinanciar;
+            
+            creditoFSDataLargo = {
+              amortizationTable: amortTable,
+              cuotaFS: cuotaFS,
+              cuotaInicial: 0,
+              baseFS: baseFS,
+              precioBase: basePriceFS,
+              inicialMayor: false
+            };
+            
+          } else {
+            // CASO 2: CON CUOTA INICIAL MAYOR
+            // Fórmulas:
+            // 1. "Precio Base" - "Cuota Inicial" = "Base FS"
+            // 2. "Cuota FS" = "Base FS" × C.I.% 
+            // 3. "Cuota Inicial" + "Cuota FS" = "Valor Cuota Inicial" (creditoFSTotalInitial)
+            
+            // Resolver algebraicamente para Cuota Inicial:
+            const ciPercent = clientConfig.ci / 100;
+            const cuotaInicialCalculada = (creditoFSTotalInitial - basePriceFS * ciPercent) / (1 - ciPercent);
+            
+            // Redondear Cuota Inicial hacia arriba en decenas
+            const cuotaInicialRedondeada = roundUpToTens(cuotaInicialCalculada);
+            
+            // Calcular Base FS = Precio Base - Cuota Inicial
+            const baseFS = basePriceFS - cuotaInicialRedondeada;
+            
+            // Calcular Cuota FS = Base FS × C.I.%
+            const cuotaFSCalculada = baseFS * ciPercent;
+            
+            setCreditoFSLargoCuotaFS(cuotaFSCalculada);
+            setInitialPayment(cuotaInicialRedondeada);
+            
+            // Valor a Financiar para la amortización = Base FS
+            const valorAFinanciar = baseFS;
+            
+            const interestRate = creditoFSRateType === 'mensual' ? monthlyRate / 100 : retanqueoRate / 100;
+            const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / installments;
+            const fgaPerMonth = valorAFinanciar * (clientConfig.fga / 100);
+            
+            // Calcular cuota base usando sistema francés
+            const r = interestRate;
+            const n = installments;
+            const fixedPaymentWithoutExtras = valorAFinanciar * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+            
+            const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
+            const seguro2Monthly = (valorAFinanciar * seguro2Formula) / 1000;
+            
+            // Generar tabla de amortización
+            let balance = valorAFinanciar;
+            const amortTable = [];
+            
+            for (let i = 1; i <= installments; i++) {
+              const interest = balance * interestRate;
+              const principal = fixedPaymentWithoutExtras - interest;
+              
+              const seguro1Row = fixedPaymentWithoutExtras * (seguro1 / 100);
+              const seguro2Row = (balance * seguro2Formula) / 1000;
+              
+              const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Row + seguro2Row;
+              
+              amortTable.push({
+                month: i,
+                balance: balance,
+                principal: principal,
+                interest: interest,
+                tecAdm: tecAdmPerMonth,
+                fga: fgaPerMonth,
+                seguro1: seguro1Row,
+                seguro2: seguro2Row,
+                payment: totalPayment
+              });
+              
+              balance -= principal;
+            }
+            
+            monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
+            totalPrice = basePriceFS;
+            remainingBalance = valorAFinanciar;
+            
+            creditoFSDataLargo = {
+              amortizationTable: amortTable,
+              cuotaFS: cuotaFSCalculada,
+              cuotaInicial: cuotaInicialRedondeada,
+              baseFS: baseFS,
+              precioBase: basePriceFS,
+              inicialMayor: true
+            };
           }
-          
-          // NO establecer el estado aquí, lo haremos al final junto con quote
-          
-          monthlyPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
-          totalPrice = basePriceFS;
-          remainingBalance = valorAFinanciar;
-          
-          // Guardar tabla para incluir en quote
-          creditoFSDataLargo = {
-            amortizationTable: amortTable,
-            cuotaFS: cuotaFSCalculada,
-            cuotaInicial: cuotaInicialRedondeada,
-            baseFS: baseFS,  // Este es el valor a financiar (Precio Base - Cuota Inicial)
-            precioBase: basePriceFS,
-            inicialMayor: false
-          };
         }
         break;
     }
@@ -1809,28 +1865,16 @@ const Cotizador = () => {
               {creditoFSTermType === 'largo' && (
                 <>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Precio Base:</span>
-                    <span className="font-bold">${(quote.creditoFSPrecioBase || quote.totalPrice).toLocaleString()}</span>
-                  </div>
-                  {quote.creditoFSCuotaInicial && quote.creditoFSCuotaInicial > 0 && (
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="font-medium">Cuota Inicial:</span>
-                      <span className="font-bold">${quote.creditoFSCuotaInicial.toLocaleString()}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Base FS:</span>
                     <span className="font-bold text-primary">${(quote.creditoFSBaseFS || quote.remainingBalance).toLocaleString()}</span>
                   </div>
-                  {quote.creditoFSCuotaFS && quote.creditoFSCuotaFS > 0 && (
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="font-medium">Cuota FS:</span>
-                      <span className="font-bold">${Math.round(quote.creditoFSCuotaFS).toLocaleString()}</span>
-                    </div>
-                  )}
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Valor a Financiar (mes 1):</span>
-                    <span className="font-bold text-blue-600">${(quote.creditoFSBaseFS || quote.remainingBalance).toLocaleString()}</span>
+                    <span className="font-medium">Cuota FS:</span>
+                    <span className="font-bold">
+                      {quote.creditoFSCuotaFS && quote.creditoFSCuotaFS > 0 
+                        ? `$${Math.round(quote.creditoFSCuotaFS).toLocaleString()}` 
+                        : '-'}
+                    </span>
                   </div>
                 </>
               )}
