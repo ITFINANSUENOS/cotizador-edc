@@ -1625,33 +1625,74 @@ const SalesPlanConfig = () => {
                       
                       const clientConfig = clientTypeConfig[newModelClientType];
                       const basePrice = newModelBasePrice;
+                      const ciPercent = clientConfig.ci / 100;
                       
-                      // Calcular primero la cuota FS (Cuota Inicial estándar)
-                      const cuotaFS = basePrice * (clientConfig.ci / 100);
+                      let cuotaInicial = 0;
+                      let cuotaFS = 0;
+                      let nuevaBaseFS = 0;
                       
-                      let adjustedBasePrice = basePrice;
-                      let finalInitialPayment = cuotaFS;
-                      let excess = 0;
-                      
-                      // Si hay inicial mayor, calcular la nueva base
-                      if (newModelInicialMayorLargo && newModelInicialMayorValueLargo > 0) {
-                        if (newModelInicialMayorValueLargo < cuotaFS) {
-                          toast.error(`La inicial mayor debe ser al menos $${cuotaFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })} (Cuota FS del ${clientConfig.ci}%)`);
-                          return;
-                        }
+                      // CASO 1: SIN CUOTA INICIAL MAYOR (Flujo Normal)
+                      if (!newModelInicialMayorLargo || newModelInicialMayorValueLargo === 0) {
+                        // Flujo normal: Cuota FS = Base FS × C.I%
+                        cuotaFS = basePrice * ciPercent;
+                        cuotaInicial = 0;
+                        nuevaBaseFS = basePrice;
+                      } else {
+                        // CASO 2: CON CUOTA INICIAL MAYOR
+                        // El usuario ingresa "Cuota Inicial Total" que se divide en:
+                        // - "Cuota Inicial" (reduce la Base FS directamente)
+                        // - "Cuota FS" (es el C.I% del valor a financiar = Nueva Base FS)
                         
-                        // El exceso es la diferencia entre la inicial mayor y la cuota FS
-                        excess = newModelInicialMayorValueLargo - cuotaFS;
-                        // La nueva base es el precio base menos el exceso
-                        adjustedBasePrice = basePrice - excess;
-                        finalInitialPayment = newModelInicialMayorValueLargo;
+                        const creditoFSTotalInitial = newModelInicialMayorValueLargo;
+                        
+                        console.log('🔍 DEBUG Admin - Valores iniciales:', {
+                          basePrice,
+                          creditoFSTotalInitial,
+                          'clientConfig.ci': clientConfig.ci,
+                          ciPercent,
+                          newModelClientType
+                        });
+                        
+                        if (ciPercent === 0) {
+                          // Si no hay C.I%, toda la Cuota Inicial Total va a reducir la Base FS
+                          cuotaInicial = creditoFSTotalInitial;
+                          cuotaFS = 0;
+                          nuevaBaseFS = basePrice - cuotaInicial;
+                        } else {
+                          // Si hay C.I%, resolver algebraicamente:
+                          // Fórmula: Cuota Inicial = (Cuota Inicial Total - Base FS × C.I%) / (1 - C.I%)
+                          
+                          const rawCuotaInicial = (creditoFSTotalInitial - basePrice * ciPercent) / (1 - ciPercent);
+                          
+                          // Redondear Cuota Inicial hacia arriba a la decena más cercana
+                          cuotaInicial = Math.ceil(rawCuotaInicial / 10) * 10;
+                          
+                          // Calcular Nueva Base FS
+                          nuevaBaseFS = basePrice - cuotaInicial;
+                          
+                          // Calcular Cuota FS para que sume exactamente la Cuota Inicial Total
+                          cuotaFS = creditoFSTotalInitial - cuotaInicial;
+                          
+                          console.log('✅ RESULTADO Admin - Cálculo Cuota Inicial Mayor:', {
+                            'Base FS': basePrice.toLocaleString('es-CO'),
+                            'Cuota Inicial Total': creditoFSTotalInitial.toLocaleString('es-CO'),
+                            'C.I%': (ciPercent * 100) + '%',
+                            '---': '---',
+                            'Cuota Inicial (raw)': rawCuotaInicial.toFixed(2),
+                            'Cuota Inicial (redondeada)': cuotaInicial.toLocaleString('es-CO'),
+                            'Nueva Base FS': nuevaBaseFS.toLocaleString('es-CO'),
+                            'Cuota FS': cuotaFS.toLocaleString('es-CO'),
+                            '---VERIFICACIÓN---': '---',
+                            'Suma (CI + CFS)': (cuotaInicial + cuotaFS).toLocaleString('es-CO'),
+                            'Debe ser igual a': creditoFSTotalInitial.toLocaleString('es-CO'),
+                            'Porcentaje CFS/Nueva Base': ((cuotaFS / nuevaBaseFS) * 100).toFixed(2) + '%',
+                            'Debe ser aprox': (ciPercent * 100) + '%'
+                          });
+                        }
                       }
                       
-                      // Calcular amortización con la base ajustada
-                      const disbursedAmount = adjustedBasePrice;
-                      
-                      // Valor a Financiar = Precio Base Ajustado - Cuota Inicial (cuotaFS o inicial mayor)
-                      const valorAFinanciar = adjustedBasePrice - finalInitialPayment;
+                      // Valor a Financiar para la amortización = Nueva Base FS
+                      const valorAFinanciar = nuevaBaseFS;
                       
                       const interestRate = newModelRateType === 'mensual' ? newModelMonthlyRate / 100 : newModelRetanqueoRate / 100;
                       const tecAdmPerMonth = (valorAFinanciar * (newModelTecAdm / 100)) / newModelInstallments;
@@ -1688,10 +1729,11 @@ const SalesPlanConfig = () => {
                           seguro1: seguro1,
                           seguro2: seguro2,
                           payment: totalPayment,
-                          adjustedBasePrice: adjustedBasePrice,
+                          baseFS: basePrice,
+                          cuotaInicial: cuotaInicial,
+                          nuevaBaseFS: nuevaBaseFS,
                           cuotaFS: cuotaFS,
-                          finalInitialPayment: finalInitialPayment,
-                          excess: excess
+                          inicialMayor: newModelInicialMayorLargo
                         });
                         
                         balance -= principal;
@@ -1699,8 +1741,8 @@ const SalesPlanConfig = () => {
                       
                       setNewModelAmortizationTable(table);
                       
-                      if (newModelInicialMayorLargo && excess > 0) {
-                        toast.success(`Inicial Mayor aplicada. Exceso: $${excess.toLocaleString('es-CO', { maximumFractionDigits: 0 })} descontado de la base`);
+                      if (newModelInicialMayorLargo && cuotaInicial > 0) {
+                        toast.success(`Inicial Mayor aplicada. Cuota Inicial: $${cuotaInicial.toLocaleString('es-CO', { maximumFractionDigits: 0 })} + Cuota FS: $${cuotaFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`);
                       }
                     }}
                     className="w-full"
@@ -1711,44 +1753,58 @@ const SalesPlanConfig = () => {
 
                    {newModelAmortizationTable.length > 0 && (
                     <div className="space-y-4">
-                      {newModelInicialMayorLargo && newModelAmortizationTable[0]?.excess > 0 ? (
+                      {newModelInicialMayorLargo && newModelAmortizationTable[0]?.inicialMayor ? (
                         <>
                           <div className="flex justify-between items-center p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                            <span className="font-semibold">Cuota FS Original: ({clientTypeConfig[newModelClientType].ci}%)</span>
+                            <span className="font-semibold">Base FS (Original):</span>
                             <span className="text-lg font-bold text-blue-700 dark:text-blue-400">
-                              ${newModelAmortizationTable[0]?.cuotaFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              ${newModelAmortizationTable[0]?.baseFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                             </span>
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                            <span className="font-semibold">Inicial Mayor (Pagada):</span>
+                            <span className="font-semibold">Cuota Inicial:</span>
                             <span className="text-lg font-bold text-green-700 dark:text-green-400">
-                              ${newModelAmortizationTable[0]?.finalInitialPayment.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              ${newModelAmortizationTable[0]?.cuotaInicial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                             </span>
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                            <span className="font-semibold">Exceso Descontado:</span>
+                            <span className="font-semibold">Nueva Base FS:</span>
                             <span className="text-lg font-bold text-purple-700 dark:text-purple-400">
-                              ${newModelAmortizationTable[0]?.excess.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              ${newModelAmortizationTable[0]?.nuevaBaseFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                             </span>
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                            <span className="font-semibold">Nueva Base Ajustada:</span>
+                            <span className="font-semibold">Cuota FS ({clientTypeConfig[newModelClientType].ci}%):</span>
                             <span className="text-lg font-bold text-orange-700 dark:text-orange-400">
-                              ${newModelAmortizationTable[0]?.adjustedBasePrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                              ${newModelAmortizationTable[0]?.cuotaFS.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-pink-100 dark:bg-pink-900/30 rounded-lg">
+                            <span className="font-semibold">Cuota Inicial Total:</span>
+                            <span className="text-lg font-bold text-pink-700 dark:text-pink-400">
+                              ${(newModelAmortizationTable[0]?.cuotaInicial + newModelAmortizationTable[0]?.cuotaFS).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                             </span>
                           </div>
                         </>
                       ) : (
                         <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                          <span className="font-semibold">Cuota Inicial: ({clientTypeConfig[newModelClientType].ci}%)</span>
+                          <span className="font-semibold">Cuota FS ({clientTypeConfig[newModelClientType].ci}%):</span>
                           <span className="text-lg font-bold text-primary">
                             ${(newModelBasePrice * (clientTypeConfig[newModelClientType].ci / 100)).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                           </span>
                         </div>
                       )}
+                      
+                      <div className="flex justify-between items-center p-3 bg-accent/10 rounded-lg">
+                        <span className="font-semibold">Número de Cuotas:</span>
+                        <span className="text-lg font-bold text-accent">
+                          {newModelInstallments}
+                        </span>
+                      </div>
                       
                       <div className="flex justify-between items-center p-3 bg-accent/10 rounded-lg">
                         <span className="font-semibold">Cuota Mensual:</span>
