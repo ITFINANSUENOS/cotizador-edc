@@ -736,7 +736,9 @@ const Cotizador = () => {
           creditoFSDataLargo = {
             amortizationTable: amortTable,
             cuotaFS: cuotaFSCalculada,
-            precioBaseAjustado: basePriceFS,
+            cuotaInicial: cuotaInicialRedondeada,
+            baseFS: baseFS,  // Este es el valor a financiar (Precio Base - Cuota Inicial)
+            precioBase: basePriceFS,
             inicialMayor: false
           };
         }
@@ -779,6 +781,10 @@ const Cotizador = () => {
         setInitialPayment(creditoFSData.cuotaInicialAjustada);
       } else if (creditoFSTermType === 'largo' && typeof creditoFSDataLargo !== 'undefined') {
         quoteData.creditoFSAmortizationTable = creditoFSDataLargo.amortizationTable;
+        quoteData.creditoFSCuotaFS = creditoFSDataLargo.cuotaFS;
+        quoteData.creditoFSCuotaInicial = creditoFSDataLargo.cuotaInicial;
+        quoteData.creditoFSBaseFS = creditoFSDataLargo.baseFS;
+        quoteData.creditoFSPrecioBase = creditoFSDataLargo.precioBase;
         
         // Actualizar estado
         setCreditoFSAmortizationTable(creditoFSDataLargo.amortizationTable);
@@ -1802,39 +1808,30 @@ const Cotizador = () => {
               
               {creditoFSTermType === 'largo' && (
                 <>
-                  {creditoFSLargoInicialMayor && creditoFSLargoCustomInitial > creditoFSLargoCuotaFS ? (
-                    <>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="font-medium">Precio Base:</span>
-                        <span className="font-bold">${quote.totalPrice.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="font-medium">Cuota Inicial:</span>
-                        <span className="font-bold">${(creditoFSLargoCustomInitial - creditoFSLargoCuotaFS).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="font-medium">Base FS:</span>
-                        <span className="font-bold text-primary">${(quote.totalPrice - (creditoFSLargoCustomInitial - creditoFSLargoCuotaFS)).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="font-medium">Cuota FS:</span>
-                        <span className="font-bold">${creditoFSLargoCuotaFS.toLocaleString()}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="font-medium">Base FS:</span>
-                        <span className="font-bold text-primary">${quote.totalPrice.toLocaleString()}</span>
-                      </div>
-                      {creditoFSLargoCuotaFS > 0 && (
-                        <div className="flex justify-between py-2 border-b">
-                          <span className="font-medium">Cuota FS:</span>
-                          <span className="font-bold">${creditoFSLargoCuotaFS.toLocaleString()}</span>
-                        </div>
-                      )}
-                    </>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Precio Base:</span>
+                    <span className="font-bold">${(quote.creditoFSPrecioBase || quote.totalPrice).toLocaleString()}</span>
+                  </div>
+                  {quote.creditoFSCuotaInicial && quote.creditoFSCuotaInicial > 0 && (
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="font-medium">Cuota Inicial:</span>
+                      <span className="font-bold">${quote.creditoFSCuotaInicial.toLocaleString()}</span>
+                    </div>
                   )}
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Base FS:</span>
+                    <span className="font-bold text-primary">${(quote.creditoFSBaseFS || quote.remainingBalance).toLocaleString()}</span>
+                  </div>
+                  {quote.creditoFSCuotaFS && quote.creditoFSCuotaFS > 0 && (
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="font-medium">Cuota FS:</span>
+                      <span className="font-bold">${Math.round(quote.creditoFSCuotaFS).toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Valor a Financiar (mes 1):</span>
+                    <span className="font-bold text-blue-600">${(quote.creditoFSBaseFS || quote.remainingBalance).toLocaleString()}</span>
+                  </div>
                 </>
               )}
               
