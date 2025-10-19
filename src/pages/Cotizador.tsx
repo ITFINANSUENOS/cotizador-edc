@@ -1412,8 +1412,12 @@ const Cotizador = () => {
                           <Button 
                             size="sm" 
                             onClick={() => {
+                              // Actualizar el estado
                               setCreditoFSTotalInitial(creditoFSLargoCustomInitial);
-                              setTimeout(() => calculateQuote(), 50);
+                              // Usar requestAnimationFrame para asegurar que el estado se actualiza antes de recalcular
+                              requestAnimationFrame(() => {
+                                calculateQuote();
+                              });
                             }}
                             className="w-full mt-2"
                           >
