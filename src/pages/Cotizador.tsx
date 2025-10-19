@@ -817,7 +817,8 @@ const Cotizador = () => {
               cuotaInicial: cuotaInicial,
               nuevaBaseFS: nuevaBaseFS,
               cuotaInicialTotal: creditoFSTotalInitial,
-              baseFS: nuevaBaseFS,
+              baseFS: basePriceFS, // Base FS original
+              baseFSOriginal: basePriceFS,
               precioBase: basePriceFS,
               inicialMayor: true
             };
@@ -864,6 +865,7 @@ const Cotizador = () => {
         quoteData.creditoFSAmortizationTable = creditoFSDataLargo.amortizationTable;
         quoteData.creditoFSCuotaFS = creditoFSDataLargo.cuotaFS;
         quoteData.creditoFSCuotaInicial = creditoFSDataLargo.cuotaInicial;
+        quoteData.creditoFSBaseFSOriginal = creditoFSDataLargo.baseFSOriginal || creditoFSDataLargo.precioBase;
         quoteData.creditoFSBaseFS = creditoFSDataLargo.baseFS;
         quoteData.creditoFSNuevaBaseFS = creditoFSDataLargo.nuevaBaseFS;
         quoteData.creditoFSCuotaInicialTotal = creditoFSDataLargo.cuotaInicialTotal;
@@ -1898,12 +1900,24 @@ const Cotizador = () => {
                   {quote.creditoFSInicialMayor ? (
                     <>
                       <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Base FS:</span>
+                        <span className="font-bold text-primary">${(quote.creditoFSBaseFSOriginal || quote.creditoFSPrecioBase || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="font-medium">Cuota Inicial:</span>
+                        <span className="font-bold">${(quote.creditoFSCuotaInicial || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
                         <span className="font-medium">Nueva Base FS:</span>
                         <span className="font-bold text-primary">${(quote.creditoFSNuevaBaseFS || quote.remainingBalance).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b">
-                        <span className="font-medium">Cuota I. Total:</span>
-                        <span className="font-bold">${(quote.creditoFSCuotaInicialTotal || 0).toLocaleString()}</span>
+                        <span className="font-medium">Cuota FS:</span>
+                        <span className="font-bold">
+                          {quote.creditoFSCuotaFS && quote.creditoFSCuotaFS > 0 
+                            ? `$${Math.round(quote.creditoFSCuotaFS).toLocaleString()}` 
+                            : '-'}
+                        </span>
                       </div>
                     </>
                   ) : (
