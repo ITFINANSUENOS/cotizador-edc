@@ -1041,10 +1041,14 @@ const Cotizador = () => {
             </CardHeader>
             <CardContent>
               <Tabs value={saleType} onValueChange={(v) => handleSaleTypeChange(v as any)}>
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className={`grid w-full ${user?.email === 'contacto@finansuenos.com' ? 'grid-cols-5' : 'grid-cols-3'}`}>
                   <TabsTrigger value="contado" className="text-[10px] sm:text-sm px-1 sm:px-3">Contado</TabsTrigger>
-                  <TabsTrigger value="credicontado" className="text-[10px] sm:text-sm px-1 sm:px-3">CrediContado</TabsTrigger>
-                  <TabsTrigger value="credito" className="text-[10px] sm:text-sm px-1 sm:px-3">Crédito</TabsTrigger>
+                  {user?.email === 'contacto@finansuenos.com' && (
+                    <>
+                      <TabsTrigger value="credicontado" className="text-[10px] sm:text-sm px-1 sm:px-3">CrediContado</TabsTrigger>
+                      <TabsTrigger value="credito" className="text-[10px] sm:text-sm px-1 sm:px-3">Crédito</TabsTrigger>
+                    </>
+                  )}
                   <TabsTrigger value="creditofs" className="text-[10px] sm:text-sm px-1 sm:px-3">Crédito FS</TabsTrigger>
                   <TabsTrigger value="convenio" className="text-[10px] sm:text-sm px-1 sm:px-3">Convenio</TabsTrigger>
                 </TabsList>
@@ -1063,28 +1067,6 @@ const Cotizador = () => {
                       >
                         <span className="font-semibold">LISTA 1</span>
                         <span className="text-sm">${Number(productPrices[0].list_1_price).toLocaleString()}</span>
-                      </Button>
-                      <Button
-                        variant={selectedList === 2 ? "default" : "outline"}
-                        onClick={() => {
-                          setSelectedList(2);
-                          setTimeout(() => calculateQuote(), 100);
-                        }}
-                        className="flex flex-col h-auto py-3"
-                      >
-                        <span className="font-semibold">LISTA 2</span>
-                        <span className="text-sm">${Number(productPrices[0].list_2_price || 0).toLocaleString()}</span>
-                      </Button>
-                      <Button
-                        variant={selectedList === 3 ? "default" : "outline"}
-                        onClick={() => {
-                          setSelectedList(3);
-                          setTimeout(() => calculateQuote(), 100);
-                        }}
-                        className="flex flex-col h-auto py-3"
-                      >
-                        <span className="font-semibold">LISTA 3</span>
-                        <span className="text-sm">${Number(productPrices[0].list_3_price || 0).toLocaleString()}</span>
                       </Button>
                       <Button
                         variant={selectedList === 4 ? "default" : "outline"}
