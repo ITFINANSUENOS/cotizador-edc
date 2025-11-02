@@ -14,6 +14,7 @@ import ProductSelector from "@/components/cotizador/ProductSelector";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
 import QuotesHistory from "@/components/cotizador/QuotesHistory";
+import PriceListView from "@/components/cotizador/PriceListView";
 
 const Cotizador = () => {
   const navigate = useNavigate();
@@ -1025,6 +1026,9 @@ const Cotizador = () => {
             </Button>
           )}
         </div>
+
+        {/* Lista de Precios */}
+        <PriceListView />
 
         {/* Tipo de Venta */}
         {selectedProduct && productPrices && productPrices.length > 0 && (
