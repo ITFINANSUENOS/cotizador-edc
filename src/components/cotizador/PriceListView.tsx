@@ -194,17 +194,15 @@ const PriceListView = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="min-w-[250px]">Producto</TableHead>
+                      <TableHead rowSpan={2} className="min-w-[250px] align-middle">Producto</TableHead>
                       <TableHead colSpan={2} className="text-center bg-blue-50">Contado</TableHead>
-                      <TableHead className="text-right">Base FINANSUEÑOS</TableHead>
+                      <TableHead rowSpan={2} className="text-center align-middle">Base FINANSUEÑOS</TableHead>
                       <TableHead colSpan={2} className="text-center bg-accent/10">Corto Plazo</TableHead>
                       <TableHead colSpan={3} className="text-center bg-accent/20">Largo Plazo</TableHead>
                     </TableRow>
                     <TableRow>
-                      <TableHead></TableHead>
                       <TableHead className="text-center bg-blue-50">Lista 1</TableHead>
                       <TableHead className="text-center bg-blue-50">Lista 4</TableHead>
-                      <TableHead></TableHead>
                       <TableHead className="text-center bg-accent/10">C.I. 50%</TableHead>
                       <TableHead className="text-center bg-accent/10">5 Cuotas</TableHead>
                       <TableHead className="text-center bg-accent/20">10 Cuotas</TableHead>
