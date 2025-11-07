@@ -225,11 +225,20 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                       const discount = calculateDiscount(basePrice);
                       const adjustedBasePrice = basePrice - discount;
                       
-                      // Calcular C.I. 50%: Cuota Inicial (50%) + Fondo de Garantías (10% del valor a desembolsar)
-                      const cuotaInicial50 = adjustedBasePrice * 0.50;
+                      // Calcular C.I. 50%: Primero redondeamos cada componente para que la suma sea exacta
+                      const cuotaInicial50Raw = adjustedBasePrice * 0.50;
                       const valorDesembolsar = adjustedBasePrice * 0.50;
-                      const fondoGarantias = valorDesembolsar * 0.10;
-                      const totalCI50 = cuotaInicial50 + fondoGarantias;
+                      const fondoGarantiasRaw = valorDesembolsar * 0.10;
+                      
+                      // Redondear el fondo de garantías primero
+                      const fondoGarantias = Math.ceil(fondoGarantiasRaw / 1000) * 1000;
+                      
+                      // Calcular el total deseado y redondear
+                      const totalCI50Raw = cuotaInicial50Raw + fondoGarantiasRaw;
+                      const totalCI50 = Math.ceil(totalCI50Raw / 1000) * 1000;
+                      
+                      // La cuota inicial es el total menos el fondo de garantías (así la suma siempre es exacta)
+                      const cuotaInicial50 = totalCI50 - fondoGarantias;
                       
                       // Calcular cuotas
                       const shortTerm5 = calculateMonthlyPayment(adjustedBasePrice, 5, 0);
