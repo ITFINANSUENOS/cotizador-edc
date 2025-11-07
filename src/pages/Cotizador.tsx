@@ -27,6 +27,11 @@ const Cotizador = () => {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [productPrices, setProductPrices] = useState<any>(null);
   
+  // Estados para controlar ProductSelector desde fuera
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedLine, setSelectedLine] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState("");
+  
   // Tipo de venta
   const [saleType, setSaleType] = useState<"contado" | "credicontado" | "credito" | "convenio" | "creditofs">("contado");
   const [installments, setInstallments] = useState(1);
@@ -201,6 +206,39 @@ const Cotizador = () => {
     setShowClientForm(false);
   };
 
+  const handlePriceListProductSelect = async (product: any, priceListId: string) => {
+    // Set the product selector fields
+    setSelectedBrand(product.brand);
+    setSelectedLine(product.line);
+    setSelectedProductId(product.id);
+    
+    // Load the prices for this product
+    const { data, error } = await supabase
+      .from("price_list_products")
+      .select(`
+        *,
+        price_list:price_lists!inner (
+          id,
+          name,
+          start_date,
+          is_active
+        )
+      `)
+      .eq("product_id", product.id)
+      .eq("price_list.is_active", true)
+      .order("created_at", { ascending: false });
+
+    if (!error && data && data.length > 0) {
+      setSelectedProduct(product);
+      setProductPrices(data);
+      setQuote(null);
+      setShowClientForm(false);
+      toast.success("Producto seleccionado desde la lista de precios");
+    } else {
+      toast.error("No se pudieron cargar los precios del producto");
+    }
+  };
+
   const handleClearProduct = () => {
     setSelectedProduct(null);
     setProductPrices(null);
@@ -220,6 +258,9 @@ const Cotizador = () => {
     setClientName("");
     setClientId("");
     setClientPhone("");
+    setSelectedBrand("");
+    setSelectedLine("");
+    setSelectedProductId("");
     toast.success("Selección de producto limpiada");
   };
 
@@ -1013,7 +1054,12 @@ const Cotizador = () => {
 
         {/* Selector de Productos */}
         <div className="relative">
-          <ProductSelector onProductSelect={handleProductSelect} />
+          <ProductSelector 
+            onProductSelect={handleProductSelect}
+            brand={selectedBrand}
+            line={selectedLine}
+            productId={selectedProductId}
+          />
           {selectedProduct && (
             <Button
               variant="ghost"
@@ -1028,7 +1074,7 @@ const Cotizador = () => {
         </div>
 
         {/* Lista de Precios */}
-        <PriceListView />
+        <PriceListView onProductSelect={handlePriceListProductSelect} />
 
         {/* Tipo de Venta */}
         {selectedProduct && productPrices && productPrices.length > 0 && (

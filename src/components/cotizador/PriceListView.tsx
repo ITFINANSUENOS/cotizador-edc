@@ -29,7 +29,11 @@ interface PriceListProduct {
   products: Product;
 }
 
-const PriceListView = () => {
+interface PriceListViewProps {
+  onProductSelect: (product: Product, priceListId: string) => void;
+}
+
+const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [priceLists, setPriceLists] = useState<PriceList[]>([]);
   const [selectedPriceList, setSelectedPriceList] = useState<string>("");
@@ -229,7 +233,11 @@ const PriceListView = () => {
                       const longTerm15 = calculateMonthlyPayment(adjustedBasePrice, 15, 0);
 
                       return (
-                        <TableRow key={item.product_id}>
+                        <TableRow 
+                          key={item.product_id}
+                          className="cursor-pointer hover:bg-accent/20 transition-colors"
+                          onClick={() => onProductSelect(product, selectedPriceList)}
+                        >
                           <TableCell className="font-medium">
                             {product.brand} - {product.description} - {product.reference}
                           </TableCell>

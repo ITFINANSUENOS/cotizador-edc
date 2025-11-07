@@ -34,18 +34,34 @@ interface PriceListProduct {
 
 interface ProductSelectorProps {
   onProductSelect: (product: Product | null, prices: PriceListProduct[] | null) => void;
+  brand?: string;
+  line?: string;
+  productId?: string;
 }
 
-const ProductSelector = ({ onProductSelect }: ProductSelectorProps) => {
+const ProductSelector = ({ onProductSelect, brand = "", line = "", productId = "" }: ProductSelectorProps) => {
   const [brands, setBrands] = useState<string[]>([]);
   const [lines, setLines] = useState<string[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   
-  const [selectedBrand, setSelectedBrand] = useState("");
-  const [selectedLine, setSelectedLine] = useState("");
-  const [selectedProductId, setSelectedProductId] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState(brand);
+  const [selectedLine, setSelectedLine] = useState(line);
+  const [selectedProductId, setSelectedProductId] = useState(productId);
   
   const [loading, setLoading] = useState(true);
+
+  // Update internal state when props change
+  useEffect(() => {
+    if (brand !== selectedBrand) setSelectedBrand(brand);
+  }, [brand]);
+
+  useEffect(() => {
+    if (line !== selectedLine) setSelectedLine(line);
+  }, [line]);
+
+  useEffect(() => {
+    if (productId !== selectedProductId) setSelectedProductId(productId);
+  }, [productId]);
 
   useEffect(() => {
     loadBrands();
