@@ -225,8 +225,13 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                       const discount = calculateDiscount(basePrice);
                       const adjustedBasePrice = basePrice - discount;
                       
+                      // Calcular C.I. 50%: Cuota Inicial (50%) + Fondo de Garantías (10% del valor a desembolsar)
+                      const cuotaInicial50 = adjustedBasePrice * 0.50;
+                      const valorDesembolsar = adjustedBasePrice * 0.50;
+                      const fondoGarantias = valorDesembolsar * 0.10;
+                      const totalCI50 = cuotaInicial50 + fondoGarantias;
+                      
                       // Calcular cuotas
-                      const shortTermWithInitial = calculateMonthlyPayment(adjustedBasePrice, 5, 50);
                       const shortTerm5 = calculateMonthlyPayment(adjustedBasePrice, 5, 0);
                       const longTerm10 = calculateMonthlyPayment(adjustedBasePrice, 10, 0);
                       const longTerm12 = calculateMonthlyPayment(adjustedBasePrice, 12, 0);
@@ -251,7 +256,7 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                             ${basePrice.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-center bg-accent/5">
-                            ${shortTermWithInitial.toLocaleString()}
+                            ${(Math.ceil(totalCI50 / 1000) * 1000).toLocaleString()}
                           </TableCell>
                           <TableCell className="text-center bg-accent/5">
                             ${shortTerm5.toLocaleString()}
