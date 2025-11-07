@@ -1243,27 +1243,28 @@ const SalesPlanConfig = () => {
                       const discountAmount = basePrice * (discountPercent / 100);
                       const discountedPrice = basePrice - discountAmount;
                       
-                      // 4. NUEVA LÓGICA: Calcular CI_nueva para que CI_nueva + Cuota_FS = Cuota Inicial Total
-                      // Fórmula: CI_nueva = (Cuota Inicial Total - Nueva Base FS * % C.I.) / (1 - % C.I.)
+                      // 4. NUEVA LÓGICA: Calcular para que CI_nueva + Cuota_FS = Cuota Inicial Total (con suma exacta)
                       const ciPercent = clientConfig.ci / 100; // Usar C.I., no FGA
-                      const cuotaInicialCalculada = (newModelTotalInitial - discountedPrice * ciPercent) / (1 - ciPercent);
                       
-                      // Redondear la cuota inicial calculada
-                      const cuotaInicialCalculadaRedondeada = roundToNearestFiveHundred(cuotaInicialCalculada);
+                      // Primero redondeamos el total ingresado por el usuario
+                      const totalRedondeado = Math.ceil(newModelTotalInitial / 1000) * 1000;
+                      
+                      // Fórmula: CI_nueva = (Cuota Inicial Total - Nueva Base FS * % C.I.) / (1 - % C.I.)
+                      const cuotaInicialCalculadaRaw = (totalRedondeado - discountedPrice * ciPercent) / (1 - ciPercent);
                       
                       // 5. Calcular Valor a Financiar basado en la nueva CI calculada
-                      const financedAmount = discountedPrice - cuotaInicialCalculadaRedondeada;
+                      const financedAmount = discountedPrice - cuotaInicialCalculadaRaw;
                       const financedAmountRedondeado = roundToNearestFiveHundred(financedAmount);
                       
-                      // 6. Calcular Cuota FS basado en el Valor a Financiar usando C.I., no FGA
-                      const cuotaFS = financedAmountRedondeado * ciPercent;
-                      const cuotaFSRedondeada = roundToNearestFiveHundred(cuotaFS);
+                      // 6. Calcular Cuota FS basado en el Valor a Financiar usando C.I.
+                      const cuotaFSRaw = financedAmountRedondeado * ciPercent;
+                      const cuotaFSRedondeada = roundToNearestFiveHundred(cuotaFSRaw);
                       
-                      // 7. Verificar que la suma de CI_nueva + Cuota_FS = Cuota Inicial Total
-                      const cuotaInicialTotalCalculada = cuotaInicialCalculadaRedondeada + cuotaFSRedondeada;
+                      // 7. Ajustar Cuota Inicial para que la suma sea exacta (Total - Cuota FS)
+                      const cuotaInicialCalculadaRedondeada = totalRedondeado - cuotaFSRedondeada;
                       
                       // 8. Guardar valores para mostrar
-                      const additionalInitial = cuotaInicialCalculadaRedondeada; // Esta es la CI nueva
+                      const additionalInitial = cuotaInicialCalculadaRedondeada; // Esta es la CI nueva (ajustada)
                       const minimumInitial = cuotaFSRedondeada; // Esta es la Cuota FS
                       
                       // 9. Calcular % de la Cuota Inicial ingresada sobre Precio Base
@@ -1358,7 +1359,7 @@ const SalesPlanConfig = () => {
                       <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
                         <span className="font-semibold">Cuota Inicial Total:</span>
                         <span className="text-lg font-bold text-primary">
-                          ${newModelTotalInitial.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                          ${(newModelAdditionalInitial + newModelMinimumInitial).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                         </span>
                       </div>
                       
