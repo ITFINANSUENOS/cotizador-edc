@@ -1243,14 +1243,14 @@ const SalesPlanConfig = () => {
                       const discountAmount = basePrice * (discountPercent / 100);
                       const discountedPrice = basePrice - discountAmount;
                       
-                      // 4. NUEVA LÓGICA: Calcular para que CI_nueva + Cuota_FS = Cuota Inicial Total (con suma exacta)
+                      // 4. NUEVA LÓGICA: Calcular para que CI_nueva + Cuota_FS = Cuota Inicial Total (100% preciso)
                       const ciPercent = clientConfig.ci / 100; // Usar C.I., no FGA
                       
-                      // Redondear el total ingresado por el usuario al 500 más cercano
-                      const totalRedondeado = roundToNearestFiveHundred(newModelTotalInitial);
+                      // Usar el valor EXACTO ingresado por el usuario (sin redondear)
+                      const totalExacto = newModelTotalInitial;
                       
                       // Fórmula: CI_nueva = (Cuota Inicial Total - Nueva Base FS * % C.I.) / (1 - % C.I.)
-                      const cuotaInicialCalculadaRaw = (totalRedondeado - discountedPrice * ciPercent) / (1 - ciPercent);
+                      const cuotaInicialCalculadaRaw = (totalExacto - discountedPrice * ciPercent) / (1 - ciPercent);
                       
                       // 5. Calcular Valor a Financiar basado en la nueva CI calculada
                       const financedAmount = discountedPrice - cuotaInicialCalculadaRaw;
@@ -1260,8 +1260,8 @@ const SalesPlanConfig = () => {
                       const cuotaFSRaw = financedAmountRedondeado * ciPercent;
                       const cuotaFSRedondeada = roundToNearestFiveHundred(cuotaFSRaw);
                       
-                      // 7. Ajustar Cuota Inicial para que la suma sea exacta (Total - Cuota FS)
-                      const cuotaInicialCalculadaRedondeada = totalRedondeado - cuotaFSRedondeada;
+                      // 7. Ajustar Cuota Inicial para que la suma sea EXACTAMENTE igual al total ingresado
+                      const cuotaInicialCalculadaRedondeada = totalExacto - cuotaFSRedondeada;
                       
                       // 8. Guardar valores para mostrar
                       const additionalInitial = cuotaInicialCalculadaRedondeada; // Esta es la CI nueva (ajustada)
