@@ -136,12 +136,6 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     return Math.ceil(monthlyPayment / 1000) * 1000; // Redondear a miles
   };
 
-  // Calcular descuento por Tipo Cliente B (descuento del 50% según rango)
-  const calculateDiscount = (basePrice: number) => {
-    // Para cliente tipo B, asumimos 50% de descuento
-    return basePrice * 0.50;
-  };
-
   return (
     <Card className="bg-white">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -223,32 +217,29 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                       const list1Price = Number(item.list_1_price || 0);
                       const list4Price = Number(item.list_4_price || 0);
                       
-                      // Aplicar descuento por Tipo Cliente B (50%)
-                      const discount = calculateDiscount(basePrice);
-                      const adjustedBasePrice = basePrice - discount;
+                      // Redondear al 500 más cercano
+                      const roundToNearestFiveHundred = (value: number) => Math.ceil(value / 500) * 500;
                       
-                      // CORTO PLAZO: Calcular con C.I. 50% del precio ajustado
-                      const ciPercent = 0.10; // 10% para clientes tipo B
-                      const cuotaInicialTotal = adjustedBasePrice * 0.50; // Cliente paga 50% como C.I. total
+                      // CORTO PLAZO con CI del 50%
+                      // Tipo Cliente B: 10% CI
+                      const ciPercent = 0.10;
+                      const cuotaInicialTotal = basePrice * 0.50; // 50% del precio base
                       
-                      // Fórmula del nuevo modelo: CI_descuento = (CI_total - Precio * %CI) / (1 - %CI)
-                      const cuotaInicialDescuentoRaw = (cuotaInicialTotal - adjustedBasePrice * ciPercent) / (1 - ciPercent);
+                      // Fórmula: CI_nueva = (CI_total - Precio * %CI) / (1 - %CI)
+                      const ciNueva = (cuotaInicialTotal - basePrice * ciPercent) / (1 - ciPercent);
                       
                       // Valor a financiar
-                      const valorAFinanciar = adjustedBasePrice - cuotaInicialDescuentoRaw;
-                      
-                      // Redondear valor a financiar al 500 más cercano
-                      const roundToNearestFiveHundred = (value: number) => Math.round(value / 500) * 500;
+                      const valorAFinanciar = basePrice - ciNueva;
                       const valorAFinanciarRedondeado = roundToNearestFiveHundred(valorAFinanciar);
                       
-                      // Calcular cuotas mensuales para corto plazo (sin intereses ni aval, solo división)
-                      const shortTerm5 = Math.ceil((valorAFinanciarRedondeado / 5) / 500) * 500;
-                      const shortTerm6 = Math.ceil((valorAFinanciarRedondeado / 6) / 500) * 500;
+                      // Calcular cuotas mensuales (simple división del valor a financiar)
+                      const shortTerm5 = roundToNearestFiveHundred(valorAFinanciarRedondeado / 5);
+                      const shortTerm6 = roundToNearestFiveHundred(valorAFinanciarRedondeado / 6);
                       
                       // Calcular cuotas de largo plazo (con intereses y aval)
-                      const longTerm10 = calculateMonthlyPayment(adjustedBasePrice, 10, 0);
-                      const longTerm12 = calculateMonthlyPayment(adjustedBasePrice, 12, 0);
-                      const longTerm15 = calculateMonthlyPayment(adjustedBasePrice, 15, 0);
+                      const longTerm10 = calculateMonthlyPayment(basePrice, 10, 0);
+                      const longTerm12 = calculateMonthlyPayment(basePrice, 12, 0);
+                      const longTerm15 = calculateMonthlyPayment(basePrice, 15, 0);
 
                       return (
                         <TableRow 
