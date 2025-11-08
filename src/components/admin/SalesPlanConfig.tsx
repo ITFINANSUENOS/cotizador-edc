@@ -1246,8 +1246,8 @@ const SalesPlanConfig = () => {
                       // 4. NUEVA LÓGICA: Calcular para que CI_nueva + Cuota_FS = Cuota Inicial Total (con suma exacta)
                       const ciPercent = clientConfig.ci / 100; // Usar C.I., no FGA
                       
-                      // Primero redondeamos el total ingresado por el usuario
-                      const totalRedondeado = Math.ceil(newModelTotalInitial / 1000) * 1000;
+                      // Redondear el total ingresado por el usuario al 500 más cercano
+                      const totalRedondeado = roundToNearestFiveHundred(newModelTotalInitial);
                       
                       // Fórmula: CI_nueva = (Cuota Inicial Total - Nueva Base FS * % C.I.) / (1 - % C.I.)
                       const cuotaInicialCalculadaRaw = (totalRedondeado - discountedPrice * ciPercent) / (1 - ciPercent);
