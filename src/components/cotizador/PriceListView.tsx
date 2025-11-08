@@ -201,14 +201,16 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                       <TableHead rowSpan={2} className="min-w-[250px] align-middle">Producto</TableHead>
                       <TableHead colSpan={2} className="text-center bg-blue-50">Contado</TableHead>
                       <TableHead rowSpan={2} className="text-center align-middle">Base FINANSUEÑOS</TableHead>
-                      <TableHead colSpan={2} className="text-center bg-accent/10">Corto Plazo</TableHead>
+                      <TableHead colSpan={2} className="text-center bg-accent/10">
+                        Corto Plazo <span className="text-xs font-normal">(C.I 50%)</span>
+                      </TableHead>
                       <TableHead colSpan={3} className="text-center bg-accent/20">Largo Plazo</TableHead>
                     </TableRow>
                     <TableRow>
                       <TableHead className="text-center bg-blue-50">Lista 1</TableHead>
                       <TableHead className="text-center bg-blue-50">Lista 4</TableHead>
-                      <TableHead className="text-center bg-accent/10">C.I. 50%</TableHead>
                       <TableHead className="text-center bg-accent/10">5 Cuotas</TableHead>
+                      <TableHead className="text-center bg-accent/10">6 Cuotas</TableHead>
                       <TableHead className="text-center bg-accent/20">10 Cuotas</TableHead>
                       <TableHead className="text-center bg-accent/20">12 Cuotas</TableHead>
                       <TableHead className="text-center bg-accent/20">15 Cuotas</TableHead>
@@ -225,23 +227,25 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                       const discount = calculateDiscount(basePrice);
                       const adjustedBasePrice = basePrice - discount;
                       
-                      // Calcular C.I. 50%: Primero redondeamos cada componente para que la suma sea exacta
-                      const cuotaInicial50Raw = adjustedBasePrice * 0.50;
-                      const valorDesembolsar = adjustedBasePrice * 0.50;
-                      const fondoGarantiasRaw = valorDesembolsar * 0.10;
+                      // CORTO PLAZO: Calcular con C.I. 50% del precio ajustado
+                      const ciPercent = 0.10; // 10% para clientes tipo B
+                      const cuotaInicialTotal = adjustedBasePrice * 0.50; // Cliente paga 50% como C.I. total
                       
-                      // Redondear el fondo de garantías primero
-                      const fondoGarantias = Math.ceil(fondoGarantiasRaw / 1000) * 1000;
+                      // Fórmula del nuevo modelo: CI_descuento = (CI_total - Precio * %CI) / (1 - %CI)
+                      const cuotaInicialDescuentoRaw = (cuotaInicialTotal - adjustedBasePrice * ciPercent) / (1 - ciPercent);
                       
-                      // Calcular el total deseado y redondear
-                      const totalCI50Raw = cuotaInicial50Raw + fondoGarantiasRaw;
-                      const totalCI50 = Math.ceil(totalCI50Raw / 1000) * 1000;
+                      // Valor a financiar
+                      const valorAFinanciar = adjustedBasePrice - cuotaInicialDescuentoRaw;
                       
-                      // La cuota inicial es el total menos el fondo de garantías (así la suma siempre es exacta)
-                      const cuotaInicial50 = totalCI50 - fondoGarantias;
+                      // Redondear valor a financiar al 500 más cercano
+                      const roundToNearestFiveHundred = (value: number) => Math.round(value / 500) * 500;
+                      const valorAFinanciarRedondeado = roundToNearestFiveHundred(valorAFinanciar);
                       
-                      // Calcular cuotas
-                      const shortTerm5 = calculateMonthlyPayment(adjustedBasePrice, 5, 0);
+                      // Calcular cuotas mensuales para corto plazo (sin intereses ni aval, solo división)
+                      const shortTerm5 = Math.ceil((valorAFinanciarRedondeado / 5) / 500) * 500;
+                      const shortTerm6 = Math.ceil((valorAFinanciarRedondeado / 6) / 500) * 500;
+                      
+                      // Calcular cuotas de largo plazo (con intereses y aval)
                       const longTerm10 = calculateMonthlyPayment(adjustedBasePrice, 10, 0);
                       const longTerm12 = calculateMonthlyPayment(adjustedBasePrice, 12, 0);
                       const longTerm15 = calculateMonthlyPayment(adjustedBasePrice, 15, 0);
@@ -265,10 +269,10 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                             ${basePrice.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-center bg-accent/5">
-                            ${(Math.ceil(totalCI50 / 1000) * 1000).toLocaleString()}
+                            ${shortTerm5.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-center bg-accent/5">
-                            ${shortTerm5.toLocaleString()}
+                            ${shortTerm6.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-center bg-accent/10">
                             ${longTerm10.toLocaleString()}
