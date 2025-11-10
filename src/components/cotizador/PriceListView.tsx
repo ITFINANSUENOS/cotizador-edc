@@ -113,27 +113,56 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     setLoading(false);
   };
 
-  // Calcular cuota mensual
-  const calculateMonthlyPayment = (basePrice: number, months: number, initialPaymentPercent: number = 0) => {
-    const avalRate = 0.02;
-    const interestRate = 0.0187;
+  // Configuración de descuentos para corto plazo (debe coincidir con SalesPlanConfig)
+  const discountRanges = [
+    { minPercent: 45, maxPercent: 65, discount: 17 },
+    { minPercent: 19.9, maxPercent: 44.9, discount: 15 },
+  ];
+
+  // Configuración de cliente Tipo B
+  const clientTypeConfig = {
+    ci: 10, // 10% para cliente tipo B
+    fga: 1.50,
+  };
+
+  // Tasas de interés (deben coincidir con SalesPlanConfig)
+  const monthlyInterestRate = 2.5; // Tasa mensual en %
+  const tecAdm = 5; // Tec/Adm en %
+  const seguro1 = 4; // Seguro 1 en %
+  const seguro2Formula = 0.17; // Fórmula seguro 2
+
+  // Función para redondear al 500 más cercano
+  const roundToNearestFiveHundred = (value: number): number => {
+    return Math.ceil(value / 500) * 500;
+  };
+
+  // Calcular cuota mensual para LARGO PLAZO (usando lógica de SalesPlanConfig)
+  const calculateLongTermMonthlyPayment = (basePrice: number, months: number): number => {
+    const interestRate = monthlyInterestRate / 100;
+    const ciPercent = clientTypeConfig.ci / 100;
     
-    // Calcular cuota inicial si aplica
-    const initialPayment = basePrice * (initialPaymentPercent / 100);
-    const amountToFinance = basePrice - initialPayment;
+    // Para largo plazo sin inicial mayor, Cuota FS = Base FS × C.I%
+    const cuotaFS = basePrice * ciPercent;
+    const nuevaBaseFS = basePrice; // No hay descuento en largo plazo
+    const valorAFinanciar = nuevaBaseFS;
     
-    // Calcular aval fijo
-    const fixedAval = amountToFinance * avalRate;
+    // Calcular componentes de la cuota
+    const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / months;
+    const fgaPerMonth = valorAFinanciar * (clientTypeConfig.fga / 100);
     
-    // Calcular cuota fija sin aval
+    // Calcular cuota base (capital + interés) usando sistema francés
     const r = interestRate;
     const n = months;
-    const fixedPaymentWithoutAval = amountToFinance * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    const fixedPaymentWithoutExtras = valorAFinanciar * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     
-    // Cuota total
-    const monthlyPayment = fixedPaymentWithoutAval + fixedAval;
+    // Calcular seguros sobre el saldo inicial
+    const seguro1Value = fixedPaymentWithoutExtras * (seguro1 / 100);
+    const seguro2Value = (valorAFinanciar * seguro2Formula) / 1000;
     
-    return Math.ceil(monthlyPayment / 1000) * 1000; // Redondear a miles
+    // Cuota total mensual
+    const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Value + seguro2Value;
+    
+    return Math.ceil(totalPayment / 1000) * 1000; // Redondear a miles
   };
 
   return (
@@ -217,29 +246,43 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                       const list1Price = Number(item.list_1_price || 0);
                       const list4Price = Number(item.list_4_price || 0);
                       
-                      // Redondear al 500 más cercano
-                      const roundToNearestFiveHundred = (value: number) => Math.ceil(value / 500) * 500;
+                      // ==================== CORTO PLAZO con CI del 50% ====================
+                      const ciPercent = clientTypeConfig.ci / 100; // 10% para cliente tipo B
+                      const cuotaInicialTotal = basePrice * 0.50; // Cliente paga 50% como C.I. total
                       
-                      // CORTO PLAZO con CI del 50%
-                      // Tipo Cliente B: 10% CI
-                      const ciPercent = 0.10;
-                      const cuotaInicialTotal = basePrice * 0.50; // 50% del precio base
+                      // 1. Calcular el % que representa la Cuota Inicial sobre el Precio Base
+                      const initialPercent = (cuotaInicialTotal / basePrice) * 100;
                       
-                      // Fórmula: CI_nueva = (CI_total - Precio * %CI) / (1 - %CI)
-                      const ciNueva = (cuotaInicialTotal - basePrice * ciPercent) / (1 - ciPercent);
+                      // 2. Determinar el descuento aplicable según el %
+                      let discountPercent = 0;
+                      for (const range of discountRanges) {
+                        if (initialPercent >= range.minPercent && initialPercent <= range.maxPercent) {
+                          discountPercent = range.discount;
+                          break;
+                        }
+                      }
                       
-                      // Valor a financiar
-                      const valorAFinanciar = basePrice - ciNueva;
-                      const valorAFinanciarRedondeado = roundToNearestFiveHundred(valorAFinanciar);
+                      // 3. Calcular descuento y Nueva Base FS
+                      const discountAmount = basePrice * (discountPercent / 100);
+                      const discountedPrice = basePrice - discountAmount;
                       
-                      // Calcular cuotas mensuales (simple división del valor a financiar)
-                      const shortTerm5 = roundToNearestFiveHundred(valorAFinanciarRedondeado / 5);
-                      const shortTerm6 = roundToNearestFiveHundred(valorAFinanciarRedondeado / 6);
+                      // 4. Calcular CI_nueva usando la fórmula exacta de SalesPlanConfig
+                      // Fórmula: CI_nueva = (Cuota Inicial Total - Nueva Base FS * % C.I.) / (1 - % C.I.)
+                      const cuotaInicialCalculadaRaw = (cuotaInicialTotal - discountedPrice * ciPercent) / (1 - ciPercent);
                       
-                      // Calcular cuotas de largo plazo (con intereses y aval)
-                      const longTerm10 = calculateMonthlyPayment(basePrice, 10, 0);
-                      const longTerm12 = calculateMonthlyPayment(basePrice, 12, 0);
-                      const longTerm15 = calculateMonthlyPayment(basePrice, 15, 0);
+                      // 5. Calcular Valor a Financiar
+                      const financedAmount = discountedPrice - cuotaInicialCalculadaRaw;
+                      const financedAmountRedondeado = roundToNearestFiveHundred(financedAmount);
+                      
+                      // 6. Calcular cuotas mensuales (simple división del valor a financiar)
+                      const shortTerm5 = roundToNearestFiveHundred(financedAmountRedondeado / 5);
+                      const shortTerm6 = roundToNearestFiveHundred(financedAmountRedondeado / 6);
+                      
+                      // ==================== LARGO PLAZO ====================
+                      // Calcular cuotas de largo plazo usando la función con toda la lógica
+                      const longTerm10 = calculateLongTermMonthlyPayment(basePrice, 10);
+                      const longTerm12 = calculateLongTermMonthlyPayment(basePrice, 12);
+                      const longTerm15 = calculateLongTermMonthlyPayment(basePrice, 15);
 
                       return (
                         <TableRow 
