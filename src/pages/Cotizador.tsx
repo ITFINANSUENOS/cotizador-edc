@@ -40,7 +40,7 @@ const Cotizador = () => {
   
   // Crédito FS (Nuevo Modelo)
   const [creditoFSTermType, setCreditoFSTermType] = useState<'corto' | 'largo' | ''>('');
-  const [creditoFSClientType, setCreditoFSClientType] = useState<string>('AAA');
+  const [creditoFSClientType, setCreditoFSClientType] = useState<string>('B'); // Todos los cálculos para Tipo B
   const [creditoFSTotalInitial, setCreditoFSTotalInitial] = useState(0);
   const [creditoFSRateType, setCreditoFSRateType] = useState<'mensual' | 'retanqueo'>('mensual');
   const [creditoFSFondoCuota, setCreditoFSFondoCuota] = useState(0);
@@ -631,7 +631,10 @@ const Cotizador = () => {
           const cuotaFSCalculada = creditoFSTotalInitial - cuotaInicialRedondeada;
           
           // 7. Calcular Valor a Financiar = Nueva Base FS - Cuota Inicial
-          const financedAmount = discountedPrice - cuotaInicialRedondeada;
+          const financedAmountRaw = discountedPrice - cuotaInicialRedondeada;
+          
+          // 8. Redondear Valor a Financiar al 500 más cercano
+          const financedAmount = roundToNearestFiveHundred(financedAmountRaw);
           
           // 7. Guardar valores para mostrar
           setCreditoFSFondoCuota(cuotaFSCalculada); // Esta es la Cuota FS
@@ -1087,9 +1090,10 @@ const Cotizador = () => {
             </CardHeader>
             <CardContent>
               <Tabs value={saleType} onValueChange={(v) => handleSaleTypeChange(v as any)}>
-                <TabsList className={`grid w-full ${user?.email === 'contacto@finansuenos.com' ? 'grid-cols-5' : 'grid-cols-3'}`}>
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="contado" className="text-[10px] sm:text-sm px-1 sm:px-3">Contado</TabsTrigger>
-                  {user?.email === 'contacto@finansuenos.com' && (
+                  {/* Ocultar CrediContado y Crédito pero mantener en el código */}
+                  {false && user?.email === 'contacto@finansuenos.com' && (
                     <>
                       <TabsTrigger value="credicontado" className="text-[10px] sm:text-sm px-1 sm:px-3">CrediContado</TabsTrigger>
                       <TabsTrigger value="credito" className="text-[10px] sm:text-sm px-1 sm:px-3">Crédito</TabsTrigger>
@@ -1283,22 +1287,25 @@ const Cotizador = () => {
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Tipo Cliente</Label>
-                        <Select value={creditoFSClientType} onValueChange={setCreditoFSClientType}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione tipo de cliente" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="AAA">AAA</SelectItem>
-                            <SelectItem value="AA">AA</SelectItem>
-                            <SelectItem value="A">A</SelectItem>
-                            <SelectItem value="BBB">BBB</SelectItem>
-                            <SelectItem value="BB">BB</SelectItem>
-                            <SelectItem value="B">B</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {/* Ocultar selector de Tipo Cliente - Todos los cálculos se hacen para Tipo B */}
+                      {false && (
+                        <div className="space-y-2">
+                          <Label>Tipo Cliente</Label>
+                          <Select value={creditoFSClientType} onValueChange={setCreditoFSClientType}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione tipo de cliente" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="AAA">AAA</SelectItem>
+                              <SelectItem value="AA">AA</SelectItem>
+                              <SelectItem value="A">A</SelectItem>
+                              <SelectItem value="BBB">BBB</SelectItem>
+                              <SelectItem value="BB">BB</SelectItem>
+                              <SelectItem value="B">B</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
 
                       {creditoFSTermType === 'corto' && (
                         <div className="space-y-2">
@@ -1906,8 +1913,12 @@ const Cotizador = () => {
                     <span className="font-bold text-primary">${quote.basePrice.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Cuota Inicial:</span>
+                    <span className="font-medium">Cuota Inicial (ajustada):</span>
                     <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Cuota FS:</span>
+                    <span className="font-bold">${Math.round(quote.creditoFSCuotaFS || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Valor a Financiar:</span>
@@ -1936,10 +1947,7 @@ const Cotizador = () => {
                         <span className="font-medium">Cuota FS:</span>
                         <span className="font-bold">${Math.round(quote.creditoFSCuotaFS || 0).toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="font-medium">Cuota Inicial Total:</span>
-                        <span className="font-bold text-blue-600">${(quote.creditoFSCuotaInicialTotal || creditoFSTotalInitial).toLocaleString()}</span>
-                      </div>
+                      {/* Quitado: Cuota Inicial Total cuando hay Inicial Mayor */}
                     </>
                   ) : (
                     <>
