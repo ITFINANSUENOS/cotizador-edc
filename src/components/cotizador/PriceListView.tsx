@@ -55,10 +55,13 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
       .select("config")
       .eq("plan_type", "nuevo_modelo_credito" as any)
       .eq("is_active", true)
-      .single();
+      .maybeSingle();
 
     if (!error && data) {
       setSalesConfig(data.config);
+    } else {
+      // Si no hay configuración, establecer objeto vacío para usar valores por defecto
+      setSalesConfig({});
     }
   };
 
