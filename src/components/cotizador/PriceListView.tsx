@@ -41,11 +41,26 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
   const [selectedLine, setSelectedLine] = useState<string>("");
   const [products, setProducts] = useState<PriceListProduct[]>([]);
   const [loading, setLoading] = useState(false);
+  const [salesConfig, setSalesConfig] = useState<any>(null);
 
-  // Cargar listas de precios disponibles
+  // Cargar configuración de planes desde la base de datos
   useEffect(() => {
+    loadSalesConfig();
     loadPriceLists();
   }, []);
+
+  const loadSalesConfig = async () => {
+    const { data, error } = await supabase
+      .from("sales_plan_config")
+      .select("config")
+      .eq("plan_type", "nuevo_modelo_credito" as any)
+      .eq("is_active", true)
+      .single();
+
+    if (!error && data) {
+      setSalesConfig(data.config);
+    }
+  };
 
   // Cargar líneas cuando se selecciona una lista
   useEffect(() => {
@@ -113,23 +128,21 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     setLoading(false);
   };
 
-  // Configuración de descuentos para corto plazo (debe coincidir con SalesPlanConfig)
-  const discountRanges = [
+  // Obtener configuración desde la base de datos o usar valores por defecto
+  const discountRanges = salesConfig?.discountRanges || [
     { minPercent: 45, maxPercent: 65, discount: 17 },
     { minPercent: 19.9, maxPercent: 44.9, discount: 15 },
   ];
 
-  // Configuración de cliente Tipo B
-  const clientTypeConfig = {
-    ci: 10, // 10% para cliente tipo B
+  const clientTypeConfig = salesConfig?.clientTypes?.B || {
+    ci: 10,
     fga: 1.50,
   };
 
-  // Tasas de interés (deben coincidir con SalesPlanConfig)
-  const monthlyInterestRate = 2.5; // Tasa mensual en %
-  const tecAdm = 5; // Tec/Adm en %
-  const seguro1 = 4; // Seguro 1 en %
-  const seguro2Formula = 0.17; // Fórmula seguro 2
+  const monthlyInterestRate = salesConfig?.interestRate || 2.5;
+  const tecAdm = salesConfig?.tecAdm || 5;
+  const seguro1 = salesConfig?.seguro1 || 4;
+  const seguro2Formula = salesConfig?.seguro2Formula || 0.17;
 
   // Función para redondear al 500 más cercano
   const roundToNearestFiveHundred = (value: number): number => {
@@ -173,12 +186,14 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     
     // 6. Calcular componentes de la cuota
     const tecAdmPerMonth = (financedAmount * (tecAdm / 100)) / months;
-    const fgaPerMonth = financedAmount * (clientTypeConfig.fga / 100);
     
     // Calcular cuota base usando sistema francés
     const r = interestRate;
     const n = months;
     const fixedPaymentWithoutExtras = financedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    
+    // FGA se calcula sobre la cuota base para corto plazo
+    const fgaPerMonth = fixedPaymentWithoutExtras * (clientTypeConfig.fga / 100);
     
     const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
     const seguro2Monthly = (financedAmount * seguro2Formula) / 1000;
@@ -201,21 +216,23 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     
     // Calcular componentes de la cuota
     const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / months;
-    const fgaPerMonth = valorAFinanciar * (clientTypeConfig.fga / 100);
     
     // Calcular cuota base (capital + interés) usando sistema francés
     const r = interestRate;
     const n = months;
     const fixedPaymentWithoutExtras = valorAFinanciar * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     
-    // Calcular seguros sobre el saldo inicial
+    // FGA se calcula sobre el valor a financiar para largo plazo
+    const fgaPerMonth = valorAFinanciar * (clientTypeConfig.fga / 100);
+    
+    // Calcular seguros
     const seguro1Value = fixedPaymentWithoutExtras * (seguro1 / 100);
     const seguro2Value = (valorAFinanciar * seguro2Formula) / 1000;
     
     // Cuota total mensual
     const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Value + seguro2Value;
     
-    return Math.ceil(totalPayment / 1000) * 1000; // Redondear a miles
+    return Math.round(totalPayment / 1000) * 1000; // Redondear a miles usando Math.round
   };
 
   return (
@@ -267,7 +284,9 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
             </div>
 
             {/* Tabla de Productos */}
-            {loading ? (
+            {!salesConfig ? (
+              <div className="text-center py-8 text-muted-foreground">Cargando configuración...</div>
+            ) : loading ? (
               <div className="text-center py-8 text-muted-foreground">Cargando productos...</div>
             ) : products.length > 0 ? (
               <div className="overflow-x-auto">
