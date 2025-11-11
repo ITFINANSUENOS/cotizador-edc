@@ -1309,16 +1309,31 @@ const Cotizador = () => {
 
                       {creditoFSTermType === 'corto' && (
                         <div className="space-y-2">
-                          <Label>Cuota Inicial Total</Label>
+                          <Label>Cuota Inicial</Label>
                           <Input
                             type="number"
                             step="1000"
                             min="0"
                             value={creditoFSTotalInitial || ''}
-                            onChange={(e) => setCreditoFSTotalInitial(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value) || 0;
+                              setCreditoFSTotalInitial(value);
+                              
+                              // Validar que sea mayor al 20% de la base
+                              if (selectedProduct && productPrices && productPrices.length > 0) {
+                                const basePrice = Number(productPrices[0].credit_price);
+                                const minimumRequired = basePrice * 0.20;
+                                if (value > 0 && value < minimumRequired) {
+                                  toast.error(`La cuota inicial debe ser mayor al 20% de la Base FinanSueños ($${Math.ceil(minimumRequired).toLocaleString()})`);
+                                }
+                              }
+                            }}
                             onFocus={(e) => e.target.select()}
-                            placeholder="Ingrese la cuota inicial total"
+                            placeholder="Ingrese la cuota inicial"
                           />
+                          <p className="text-xs text-muted-foreground">
+                            Debe ser mayor al 20% de la Base FinanSueños
+                          </p>
                         </div>
                       )}
 
@@ -1913,16 +1928,16 @@ const Cotizador = () => {
                     <span className="font-bold text-primary">${quote.basePrice.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Cuota Inicial (ajustada):</span>
+                    <span className="font-medium">Cuota Inicial:</span>
                     <span className="font-bold">${quote.initialPayment.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="font-medium">Cuota FS:</span>
-                    <span className="font-bold">${Math.round(quote.creditoFSCuotaFS || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-medium">Valor a Financiar:</span>
                     <span className="font-bold">${quote.remainingBalance.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="font-medium">Cuota FS:</span>
+                    <span className="font-bold">${Math.round(quote.creditoFSCuotaFS || 0).toLocaleString()}</span>
                   </div>
                 </>
               )}

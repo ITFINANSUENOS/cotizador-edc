@@ -415,13 +415,8 @@ const SalesPlanConfig = () => {
     <div className="space-y-6">
       <Tabs defaultValue="nuevomodelo">
         <TabsList className="grid w-full grid-cols-3">
-          {/* Ocultar CrediContado y Crédito pero mantener en el código */}
-          {false && (
-            <>
-              <TabsTrigger value="credicontado">Venta CrediContado</TabsTrigger>
-              <TabsTrigger value="credito">Venta Crédito</TabsTrigger>
-            </>
-          )}
+          <TabsTrigger value="credicontado">Venta CrediContado</TabsTrigger>
+          <TabsTrigger value="credito">Venta Crédito</TabsTrigger>
           <TabsTrigger value="nuevomodelo">Nuevo Modelo Crédito</TabsTrigger>
         </TabsList>
 

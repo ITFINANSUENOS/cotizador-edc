@@ -136,6 +136,59 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     return Math.ceil(value / 500) * 500;
   };
 
+  // Función para redondear hacia arriba en decenas
+  const roundUpToTens = (value: number): number => {
+    return Math.ceil(value / 10) * 10;
+  };
+
+  // Calcular cuota mensual para CORTO PLAZO con toda la lógica completa
+  const calculateShortTermMonthlyPayment = (basePrice: number, months: number): number => {
+    const interestRate = monthlyInterestRate / 100;
+    const ciPercent = clientTypeConfig.ci / 100;
+    const cuotaInicialTotal = basePrice * 0.50; // Cliente paga 50% como C.I. total
+    
+    // 1. Calcular el % que representa la Cuota Inicial sobre el Precio Base
+    const initialPercent = (cuotaInicialTotal / basePrice) * 100;
+    
+    // 2. Determinar el descuento aplicable según el %
+    let discountPercent = 0;
+    for (const range of discountRanges) {
+      if (initialPercent >= range.minPercent && initialPercent <= range.maxPercent) {
+        discountPercent = range.discount;
+        break;
+      }
+    }
+    
+    // 3. Calcular descuento y Nueva Base FS
+    const discountAmount = basePrice * (discountPercent / 100);
+    const discountedPrice = basePrice - discountAmount;
+    
+    // 4. Calcular CI_nueva usando la fórmula exacta
+    const cuotaInicialCalculadaRaw = (cuotaInicialTotal - discountedPrice * ciPercent) / (1 - ciPercent);
+    const cuotaInicialRedondeada = roundUpToTens(cuotaInicialCalculadaRaw);
+    
+    // 5. Calcular Valor a Financiar
+    const financedAmountRaw = discountedPrice - cuotaInicialRedondeada;
+    const financedAmount = roundToNearestFiveHundred(financedAmountRaw);
+    
+    // 6. Calcular componentes de la cuota
+    const tecAdmPerMonth = (financedAmount * (tecAdm / 100)) / months;
+    const fgaPerMonth = financedAmount * (clientTypeConfig.fga / 100);
+    
+    // Calcular cuota base usando sistema francés
+    const r = interestRate;
+    const n = months;
+    const fixedPaymentWithoutExtras = financedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    
+    const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
+    const seguro2Monthly = (financedAmount * seguro2Formula) / 1000;
+    
+    // Cuota total mensual
+    const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
+    
+    return roundToNearestFiveHundred(totalPayment);
+  };
+
   // Calcular cuota mensual para LARGO PLAZO (usando lógica de SalesPlanConfig)
   const calculateLongTermMonthlyPayment = (basePrice: number, months: number): number => {
     const interestRate = monthlyInterestRate / 100;
@@ -247,36 +300,9 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                       const list4Price = Number(item.list_4_price || 0);
                       
                       // ==================== CORTO PLAZO con CI del 50% ====================
-                      const ciPercent = clientTypeConfig.ci / 100; // 10% para cliente tipo B
-                      const cuotaInicialTotal = basePrice * 0.50; // Cliente paga 50% como C.I. total
-                      
-                      // 1. Calcular el % que representa la Cuota Inicial sobre el Precio Base
-                      const initialPercent = (cuotaInicialTotal / basePrice) * 100;
-                      
-                      // 2. Determinar el descuento aplicable según el %
-                      let discountPercent = 0;
-                      for (const range of discountRanges) {
-                        if (initialPercent >= range.minPercent && initialPercent <= range.maxPercent) {
-                          discountPercent = range.discount;
-                          break;
-                        }
-                      }
-                      
-                      // 3. Calcular descuento y Nueva Base FS
-                      const discountAmount = basePrice * (discountPercent / 100);
-                      const discountedPrice = basePrice - discountAmount;
-                      
-                      // 4. Calcular CI_nueva usando la fórmula exacta de SalesPlanConfig
-                      // Fórmula: CI_nueva = (Cuota Inicial Total - Nueva Base FS * % C.I.) / (1 - % C.I.)
-                      const cuotaInicialCalculadaRaw = (cuotaInicialTotal - discountedPrice * ciPercent) / (1 - ciPercent);
-                      
-                      // 5. Calcular Valor a Financiar
-                      const financedAmount = discountedPrice - cuotaInicialCalculadaRaw;
-                      const financedAmountRedondeado = roundToNearestFiveHundred(financedAmount);
-                      
-                      // 6. Calcular cuotas mensuales (simple división del valor a financiar)
-                      const shortTerm5 = roundToNearestFiveHundred(financedAmountRedondeado / 5);
-                      const shortTerm6 = roundToNearestFiveHundred(financedAmountRedondeado / 6);
+                      // Usar la función completa que incluye todos los componentes (Tec/Adm, FGA, Seguros)
+                      const shortTerm5 = calculateShortTermMonthlyPayment(basePrice, 5);
+                      const shortTerm6 = calculateShortTermMonthlyPayment(basePrice, 6);
                       
                       // ==================== LARGO PLAZO ====================
                       // Calcular cuotas de largo plazo usando la función con toda la lógica
