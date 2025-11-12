@@ -42,10 +42,12 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
   const [products, setProducts] = useState<PriceListProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [salesConfig, setSalesConfig] = useState<any>(null);
+  const [discountRanges, setDiscountRanges] = useState<any[]>([]);
 
-  // Cargar configuración de planes desde la base de datos
+  // Cargar configuración de planes y rangos de descuento desde la base de datos
   useEffect(() => {
     loadSalesConfig();
+    loadDiscountRanges();
     loadPriceLists();
   }, []);
 
@@ -62,6 +64,27 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     } else {
       // Si no hay configuración, establecer objeto vacío para usar valores por defecto
       setSalesConfig({});
+    }
+  };
+
+  const loadDiscountRanges = async () => {
+    const { data, error } = await supabase
+      .from('discount_ranges_history')
+      .select('*')
+      .eq('plan_type', 'nuevo_modelo_credito')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!error && data && data.length > 0) {
+      const latestRanges = data[0].ranges as Array<{minPercent: number, maxPercent: number, discount: number}>;
+      setDiscountRanges(latestRanges);
+    } else {
+      // Si no hay rangos en la base de datos, usar valores por defecto de SalesPlanConfig
+      setDiscountRanges([
+        { minPercent: 70, maxPercent: 100, discount: 25 },
+        { minPercent: 45, maxPercent: 69.999, discount: 20 },
+        { minPercent: 29.999, maxPercent: 44.999, discount: 15 },
+      ]);
     }
   };
 
@@ -132,9 +155,10 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
   };
 
   // Obtener configuración desde la base de datos o usar valores por defecto
-  const discountRanges = salesConfig?.discountRanges || [
-    { minPercent: 45, maxPercent: 65, discount: 17 },
-    { minPercent: 19.9, maxPercent: 44.9, discount: 15 },
+  const discountRangesConfig = discountRanges.length > 0 ? discountRanges : [
+    { minPercent: 70, maxPercent: 100, discount: 25 },
+    { minPercent: 45, maxPercent: 69.999, discount: 20 },
+    { minPercent: 29.999, maxPercent: 44.999, discount: 15 },
   ];
 
   const clientTypeConfig = salesConfig?.clientTypes?.B || {
@@ -157,18 +181,20 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     return Math.ceil(value / 10) * 10;
   };
 
-  // Calcular cuota mensual para CORTO PLAZO con toda la lógica completa
+  // Calcular cuota mensual para CORTO PLAZO - Réplica EXACTA de SalesPlanConfig.tsx líneas 1200-1330
   const calculateShortTermMonthlyPayment = (basePrice: number, months: number): number => {
     const interestRate = monthlyInterestRate / 100;
     const ciPercent = clientTypeConfig.ci / 100;
-    const cuotaInicialTotal = basePrice * 0.50; // Cliente paga 50% como C.I. total
+    
+    // Para corto plazo siempre es 50% de cuota inicial total
+    const cuotaInicialTotal = basePrice * 0.50;
     
     // 1. Calcular el % que representa la Cuota Inicial sobre el Precio Base
     const initialPercent = (cuotaInicialTotal / basePrice) * 100;
     
     // 2. Determinar el descuento aplicable según el %
     let discountPercent = 0;
-    for (const range of discountRanges) {
+    for (const range of discountRangesConfig) {
       if (initialPercent >= range.minPercent && initialPercent <= range.maxPercent) {
         discountPercent = range.discount;
         break;
@@ -179,43 +205,44 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     const discountAmount = basePrice * (discountPercent / 100);
     const discountedPrice = basePrice - discountAmount;
     
-    // 4. Calcular CI_nueva usando la fórmula exacta
+    // 4. Calcular CI_nueva usando la fórmula exacta (SIN redondear aquí)
+    // Fórmula: CI_nueva = (Cuota Inicial Total - Nueva Base FS * % C.I.) / (1 - % C.I.)
     const cuotaInicialCalculadaRaw = (cuotaInicialTotal - discountedPrice * ciPercent) / (1 - ciPercent);
-    const cuotaInicialRedondeada = roundUpToTens(cuotaInicialCalculadaRaw);
     
-    // 5. Calcular Valor a Financiar
-    const financedAmountRaw = discountedPrice - cuotaInicialRedondeada;
-    const financedAmount = roundToNearestFiveHundred(financedAmountRaw);
+    // 5. Calcular Valor a Financiar basado en CI_nueva SIN REDONDEAR
+    const financedAmount = discountedPrice - cuotaInicialCalculadaRaw;
+    const financedAmountRedondeado = roundToNearestFiveHundred(financedAmount);
     
     // 6. Calcular componentes de la cuota
-    const tecAdmPerMonth = (financedAmount * (tecAdm / 100)) / months;
+    const tecAdmPerMonth = (financedAmountRedondeado * (tecAdm / 100)) / months;
     
     // Calcular cuota base usando sistema francés
     const r = interestRate;
     const n = months;
-    const fixedPaymentWithoutExtras = financedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    const fixedPaymentWithoutExtras = financedAmountRedondeado * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     
-    // FGA se calcula sobre la cuota base para corto plazo
+    // FGA se calcula sobre la cuota base (fixedPaymentWithoutExtras) para corto plazo
     const fgaPerMonth = fixedPaymentWithoutExtras * (clientTypeConfig.fga / 100);
     
     const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
-    const seguro2Monthly = (financedAmount * seguro2Formula) / 1000;
+    const seguro2Monthly = (financedAmountRedondeado * seguro2Formula) / 1000;
     
     // Cuota total mensual
     const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
     
+    // Redondear al 500 más cercano (hacia arriba)
     return roundToNearestFiveHundred(totalPayment);
   };
 
-  // Calcular cuota mensual para LARGO PLAZO (usando lógica de SalesPlanConfig)
+  // Calcular cuota mensual para LARGO PLAZO - Réplica EXACTA de SalesPlanConfig.tsx líneas 1625-1758
   const calculateLongTermMonthlyPayment = (basePrice: number, months: number): number => {
     const interestRate = monthlyInterestRate / 100;
     const ciPercent = clientTypeConfig.ci / 100;
     
-    // Para largo plazo sin inicial mayor, Cuota FS = Base FS × C.I%
+    // Para largo plazo sin inicial mayor: Cuota FS = Base FS × C.I%
     const cuotaFS = basePrice * ciPercent;
     const nuevaBaseFS = basePrice; // No hay descuento en largo plazo
-    const valorAFinanciar = nuevaBaseFS;
+    const valorAFinanciar = nuevaBaseFS; // Valor a financiar = Nueva Base FS
     
     // Calcular componentes de la cuota
     const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / months;
@@ -225,7 +252,7 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     const n = months;
     const fixedPaymentWithoutExtras = valorAFinanciar * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     
-    // FGA se calcula sobre el valor a financiar para largo plazo
+    // FGA se calcula sobre el valor a financiar para largo plazo (NO sobre fixedPaymentWithoutExtras)
     const fgaPerMonth = valorAFinanciar * (clientTypeConfig.fga / 100);
     
     // Calcular seguros
@@ -235,7 +262,8 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     // Cuota total mensual
     const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Value + seguro2Value;
     
-    return Math.round(totalPayment / 1000) * 1000; // Redondear a miles usando Math.round
+    // Redondear a miles hacia arriba (Math.ceil, no Math.round)
+    return Math.ceil(totalPayment / 1000) * 1000;
   };
 
   return (
