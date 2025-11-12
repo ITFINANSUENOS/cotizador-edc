@@ -217,9 +217,9 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     const n = months;
     const fixedPaymentWithoutExtras = disbursedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     
-    // Simular amortización para calcular seguros correctamente por cada mes
+    // Simular amortización para calcular cuota promedio exactamente como SalesPlanConfig
     let balance = disbursedAmount;
-    let totalPaymentSum = 0;
+    const monthlyPayments: number[] = [];
     
     for (let i = 1; i <= months; i++) {
       const interest = balance * r;
@@ -231,16 +231,16 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
       
       // Cuota total mensual - línea 1304
       const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
-      totalPaymentSum += totalPayment;
+      monthlyPayments.push(totalPayment);
       
       balance -= principal;
     }
     
-    // Promedio de todas las cuotas
-    const avgPayment = totalPaymentSum / months;
+    // Tomar la primera cuota (como lo hace SalesPlanConfig en línea 1390)
+    const firstPayment = monthlyPayments[0];
     
     // Redondear a MILES hacia arriba - línea 1390
-    return Math.ceil(avgPayment / 1000) * 1000;
+    return Math.ceil(firstPayment / 1000) * 1000;
   };
 
   // Calcular cuota mensual para LARGO PLAZO - Réplica EXACTA de SalesPlanConfig.tsx líneas 1625-1758
@@ -248,7 +248,7 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     const interestRate = monthlyInterestRate / 100;
     const ciPercent = clientTypeConfig.ci / 100;
     
-    // Para largo plazo sin inicial mayor - líneas 1643-1645 SalesPlanConfig
+    // Para largo plazo sin inicial mayor - líneas 1641-1645 SalesPlanConfig
     const cuotaFS = basePrice * ciPercent;
     const nuevaBaseFS = basePrice;
     const valorAFinanciar = nuevaBaseFS;
@@ -262,9 +262,9 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     const n = months;
     const fixedPaymentWithoutExtras = valorAFinanciar * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     
-    // Simular amortización para calcular seguros correctamente por cada mes
+    // Simular amortización para calcular cuota promedio exactamente como SalesPlanConfig
     let balance = valorAFinanciar;
-    let totalPaymentSum = 0;
+    const monthlyPayments: number[] = [];
     
     for (let i = 1; i <= months; i++) {
       const interest = balance * r;
@@ -276,16 +276,16 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
       
       // Cuota total mensual - línea 1726
       const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
-      totalPaymentSum += totalPayment;
+      monthlyPayments.push(totalPayment);
       
       balance -= principal;
     }
     
-    // Promedio de todas las cuotas
-    const avgPayment = totalPaymentSum / months;
+    // Tomar la primera cuota (como lo hace SalesPlanConfig)
+    const firstPayment = monthlyPayments[0];
     
     // Redondear a miles hacia arriba
-    return Math.ceil(avgPayment / 1000) * 1000;
+    return Math.ceil(firstPayment / 1000) * 1000;
   };
 
   return (
