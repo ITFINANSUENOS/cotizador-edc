@@ -176,7 +176,7 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     return Math.ceil(value / 500) * 500;
   };
 
-  // Calcular cuota mensual para CORTO PLAZO - Réplica EXACTA de SalesPlanConfig.tsx
+  // Calcular cuota mensual para CORTO PLAZO - Réplica EXACTA de SalesPlanConfig.tsx líneas 1206-1390
   const calculateShortTermMonthlyPayment = (basePrice: number, months: number): number => {
     const interestRate = monthlyInterestRate / 100;
     const ciPercent = clientTypeConfig.ci / 100;
@@ -200,34 +200,47 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     const discountAmount = basePrice * (discountPercent / 100);
     const discountedPrice = basePrice - discountAmount;
     
-    // 4. Calcular CI_nueva usando la fórmula exacta (SIN redondear)
-    // Fórmula: CI_nueva = (Cuota Inicial Total - Nueva Base FS * % C.I.) / (1 - % C.I.)
-    const cuotaInicialCalculadaRaw = (cuotaInicialTotal - discountedPrice * ciPercent) / (1 - ciPercent);
+    // 4. Calcular CI_nueva usando la fórmula exacta (SIN redondear) - línea 1253
+    const totalExacto = cuotaInicialTotal;
+    const cuotaInicialCalculadaRaw = (totalExacto - discountedPrice * ciPercent) / (1 - ciPercent);
     
-    // 5. Calcular Valor a Financiar basado en CI_nueva SIN REDONDEAR
+    // 5. Calcular Valor a Financiar basado en CI_nueva SIN REDONDEAR - línea 1256-1257
     const financedAmount = discountedPrice - cuotaInicialCalculadaRaw;
     const disbursedAmount = roundToNearestFiveHundred(financedAmount);
     
-    // 6. Calcular componentes de la cuota EXACTAMENTE como en SalesPlanConfig líneas 1284-1304
+    // 6. Calcular componentes según SalesPlanConfig líneas 1284-1304
     const tecAdmPerMonth = (disbursedAmount * (tecAdm / 100)) / months;
+    const fgaPerMonth = disbursedAmount * (clientTypeConfig.fga / 100); // línea 1287
     
-    // FGA se calcula sobre disbursedAmount (valor a financiar) - línea 1287 SalesPlanConfig
-    const fgaPerMonth = disbursedAmount * (clientTypeConfig.fga / 100);
-    
-    // Calcular cuota base usando sistema francés - línea 1292 SalesPlanConfig
+    // Calcular cuota base usando sistema francés - línea 1292
     const r = interestRate;
     const n = months;
     const fixedPaymentWithoutExtras = disbursedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     
-    // Seguros - líneas 1301-1302 SalesPlanConfig
-    const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
-    const seguro2Monthly = (disbursedAmount * seguro2Formula) / 1000;
+    // Simular amortización para calcular seguros correctamente por cada mes
+    let balance = disbursedAmount;
+    let totalPaymentSum = 0;
     
-    // Cuota total mensual - línea 1304 SalesPlanConfig
-    const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
+    for (let i = 1; i <= months; i++) {
+      const interest = balance * r;
+      const principal = fixedPaymentWithoutExtras - interest;
+      
+      // Seguros - líneas 1301-1302
+      const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
+      const seguro2Monthly = (balance * seguro2Formula) / 1000;
+      
+      // Cuota total mensual - línea 1304
+      const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
+      totalPaymentSum += totalPayment;
+      
+      balance -= principal;
+    }
     
-    // Redondear a MILES hacia arriba - línea 1390 SalesPlanConfig
-    return Math.ceil(totalPayment / 1000) * 1000;
+    // Promedio de todas las cuotas
+    const avgPayment = totalPaymentSum / months;
+    
+    // Redondear a MILES hacia arriba - línea 1390
+    return Math.ceil(avgPayment / 1000) * 1000;
   };
 
   // Calcular cuota mensual para LARGO PLAZO - Réplica EXACTA de SalesPlanConfig.tsx líneas 1625-1758
@@ -242,8 +255,6 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     
     // Calcular componentes - líneas 1704-1705 SalesPlanConfig
     const tecAdmPerMonth = (valorAFinanciar * (tecAdm / 100)) / months;
-    
-    // FGA se calcula sobre valorAFinanciar - línea 1705 SalesPlanConfig
     const fgaPerMonth = valorAFinanciar * (clientTypeConfig.fga / 100);
     
     // Calcular cuota base usando sistema francés - línea 1710 SalesPlanConfig
@@ -251,15 +262,30 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     const n = months;
     const fixedPaymentWithoutExtras = valorAFinanciar * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     
-    // Seguros - líneas 1720-1723 SalesPlanConfig
-    const seguro1Value = fixedPaymentWithoutExtras * (seguro1 / 100);
-    const seguro2Value = (valorAFinanciar * seguro2Formula) / 1000;
+    // Simular amortización para calcular seguros correctamente por cada mes
+    let balance = valorAFinanciar;
+    let totalPaymentSum = 0;
     
-    // Cuota total mensual - línea 1726 SalesPlanConfig
-    const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Value + seguro2Value;
+    for (let i = 1; i <= months; i++) {
+      const interest = balance * r;
+      const principal = fixedPaymentWithoutExtras - interest;
+      
+      // Seguros - líneas 1720-1723
+      const seguro1Monthly = fixedPaymentWithoutExtras * (seguro1 / 100);
+      const seguro2Monthly = (balance * seguro2Formula) / 1000;
+      
+      // Cuota total mensual - línea 1726
+      const totalPayment = fixedPaymentWithoutExtras + tecAdmPerMonth + fgaPerMonth + seguro1Monthly + seguro2Monthly;
+      totalPaymentSum += totalPayment;
+      
+      balance -= principal;
+    }
+    
+    // Promedio de todas las cuotas
+    const avgPayment = totalPaymentSum / months;
     
     // Redondear a miles hacia arriba
-    return Math.ceil(totalPayment / 1000) * 1000;
+    return Math.ceil(avgPayment / 1000) * 1000;
   };
 
   return (
