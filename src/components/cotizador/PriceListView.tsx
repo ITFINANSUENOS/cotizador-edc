@@ -52,10 +52,11 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
   }, []);
 
   const loadSalesConfig = async () => {
+    // Cargar desde "credito" como lo hace Cotizador.tsx línea 542-546
     const { data, error } = await supabase
       .from("sales_plan_config")
       .select("config")
-      .eq("plan_type", "nuevo_modelo_credito" as any)
+      .eq("plan_type", "credito" as any)
       .eq("is_active", true)
       .maybeSingle();
 
@@ -79,11 +80,11 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
       const latestRanges = data[0].ranges as Array<{minPercent: number, maxPercent: number, discount: number}>;
       setDiscountRanges(latestRanges);
     } else {
-      // Si no hay rangos en la base de datos, usar valores por defecto de SalesPlanConfig
+      // Si no hay rangos en la base de datos, usar MISMOS valores por defecto que Cotizador.tsx línea 580-584
       setDiscountRanges([
-        { minPercent: 70, maxPercent: 100, discount: 25 },
-        { minPercent: 45, maxPercent: 69.999, discount: 20 },
-        { minPercent: 29.999, maxPercent: 44.999, discount: 15 },
+        { minPercent: 0, maxPercent: 0, discount: 0 },
+        { minPercent: 24.999, maxPercent: 44.999, discount: 15 },
+        { minPercent: 45, maxPercent: 64.999, discount: 17 },
       ]);
     }
   };
@@ -154,22 +155,24 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
     setLoading(false);
   };
 
-  // Obtener configuración desde la base de datos o usar valores por defecto
+  // Obtener configuración desde la base de datos o usar MISMOS valores por defecto que Cotizador.tsx
   const discountRangesConfig = discountRanges.length > 0 ? discountRanges : [
-    { minPercent: 70, maxPercent: 100, discount: 25 },
-    { minPercent: 45, maxPercent: 69.999, discount: 20 },
-    { minPercent: 29.999, maxPercent: 44.999, discount: 15 },
+    { minPercent: 0, maxPercent: 0, discount: 0 },
+    { minPercent: 24.999, maxPercent: 44.999, discount: 15 },
+    { minPercent: 45, maxPercent: 64.999, discount: 17 },
   ];
 
-  const clientTypeConfig = salesConfig?.clientTypes?.B || {
+  // Cliente tipo B (hardcoded como en Cotizador.tsx línea 530-537)
+  const clientTypeConfig = {
     ci: 10,
     fga: 1.50,
   };
 
-  const monthlyInterestRate = salesConfig?.interestRate || 2.5;
-  const tecAdm = salesConfig?.tecAdm || 5;
-  const seguro1 = salesConfig?.seguro1 || 4;
-  const seguro2Formula = salesConfig?.seguro2Formula || 0.17;
+  // Obtener configuración desde "credito" como Cotizador.tsx línea 548-552
+  const monthlyInterestRate = salesConfig?.monthly_interest_rate || 2.5;
+  const tecAdm = 5; // Valor por defecto hardcoded
+  const seguro1 = 4; // Valor por defecto hardcoded
+  const seguro2Formula = 0.17; // Valor por defecto hardcoded
 
   // Función para redondear al 500 más cercano
   const roundToNearestFiveHundred = (value: number): number => {
