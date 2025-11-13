@@ -26,6 +26,7 @@ interface PriceListProduct {
   credit_price: number;
   list_1_price: number;
   list_4_price: number;
+  convenio_price: number;
   products: Product;
 }
 
@@ -142,6 +143,7 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
         credit_price,
         list_1_price,
         list_4_price,
+        convenio_price,
         products(id, brand, line, reference, description)
       `)
       .eq("price_list_id", selectedPriceList);
@@ -341,6 +343,7 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                       <TableHead className="text-center bg-accent/20">10 Cuotas</TableHead>
                       <TableHead className="text-center bg-accent/20">12 Cuotas</TableHead>
                       <TableHead className="text-center bg-accent/20">15 Cuotas</TableHead>
+                      <TableHead rowSpan={2} className="text-center align-middle">Convenio</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -349,6 +352,7 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                       const basePrice = Number(item.credit_price);
                       const list1Price = Number(item.list_1_price || 0);
                       const list4Price = Number(item.list_4_price || 0);
+                      const convenioPrice = Number(item.convenio_price || 0);
                       
                       // ==================== CORTO PLAZO con CI del 50% ====================
                       // Usar la función completa que incluye todos los componentes (Tec/Adm, FGA, Seguros)
@@ -393,6 +397,9 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                           </TableCell>
                           <TableCell className="text-center bg-accent/10">
                             ${longTerm15.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            ${convenioPrice.toLocaleString()}
                           </TableCell>
                         </TableRow>
                       );
