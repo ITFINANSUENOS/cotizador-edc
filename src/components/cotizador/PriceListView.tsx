@@ -334,6 +334,7 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                         Corto Plazo <span className="text-xs font-normal">(C.I 50%)</span>
                       </TableHead>
                       <TableHead colSpan={3} className="text-center bg-accent/20">Largo Plazo</TableHead>
+                      <TableHead rowSpan={2} className="text-center align-middle">Convenio</TableHead>
                     </TableRow>
                     <TableRow>
                       <TableHead className="text-center bg-blue-50">Lista 1</TableHead>
@@ -343,7 +344,6 @@ const PriceListView = ({ onProductSelect }: PriceListViewProps) => {
                       <TableHead className="text-center bg-accent/20">10 Cuotas</TableHead>
                       <TableHead className="text-center bg-accent/20">12 Cuotas</TableHead>
                       <TableHead className="text-center bg-accent/20">15 Cuotas</TableHead>
-                      <TableHead rowSpan={2} className="text-center align-middle">Convenio</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
