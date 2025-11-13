@@ -307,6 +307,16 @@ const Cotizador = () => {
       return;
     }
 
+    // Validar cuota inicial para Crédito FS
+    if (saleType === "creditofs") {
+      const basePrice = Number(productPrices[0].credit_price);
+      const minimumRequired = basePrice * 0.20;
+      if (creditoFSTotalInitial > 0 && creditoFSTotalInitial < minimumRequired) {
+        toast.error(`La cuota inicial debe ser mayor al 20% de la Base FinanSueños ($${Math.ceil(minimumRequired).toLocaleString()})`);
+        return;
+      }
+    }
+
     // Usar el primer precio disponible (el más reciente por la ordenación)
     const priceData = productPrices[0];
     
@@ -1318,15 +1328,6 @@ const Cotizador = () => {
                             onChange={(e) => {
                               const value = parseFloat(e.target.value) || 0;
                               setCreditoFSTotalInitial(value);
-                              
-                              // Validar que sea mayor al 20% de la base
-                              if (selectedProduct && productPrices && productPrices.length > 0) {
-                                const basePrice = Number(productPrices[0].credit_price);
-                                const minimumRequired = basePrice * 0.20;
-                                if (value > 0 && value < minimumRequired) {
-                                  toast.error(`La cuota inicial debe ser mayor al 20% de la Base FinanSueños ($${Math.ceil(minimumRequired).toLocaleString()})`);
-                                }
-                              }
                             }}
                             onFocus={(e) => e.target.select()}
                             placeholder="Ingrese la cuota inicial"
